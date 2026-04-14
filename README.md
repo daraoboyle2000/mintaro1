@@ -19,6 +19,11 @@ This repository now contains the **first working alpha scaffold** with:
 npm install
 ```
 
+> If you are upgrading from an older SDK version, clear Metro cache once after install:
+> ```bash
+> npx expo start -c
+> ```
+
 ## Run
 ```bash
 npm run start
