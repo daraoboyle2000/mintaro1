@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Mintaro",
+    "slug": "mintaro",
+    "version": "0.1.0",
+    "scheme": "mintaro",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
