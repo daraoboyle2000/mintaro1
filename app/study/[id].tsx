@@ -5,11 +5,13 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { useRole } from '@/context/RoleContext';
 import { mockStudies } from '@/data/mockData';
 import { theme } from '@/theme';
 
 export default function StudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { applyToStudy } = useRole();
   const study = mockStudies.find((entry) => entry.id === id);
 
   if (!study) {
@@ -40,7 +42,7 @@ export default function StudyDetailsScreen() {
           ))}
         </View>
       </Card>
-      <Button title="Apply to this study" />
+      <Button title="Apply to this study" onPress={() => applyToStudy(study)} />
     </ScrollView>
   );
 }

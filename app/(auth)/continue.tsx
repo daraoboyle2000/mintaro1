@@ -7,17 +7,29 @@ import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function ContinueScreen() {
-  const { role } = useRole();
+  const { role, devModePreset, hydrateByPreset } = useRole();
 
   return (
     <View style={styles.container}>
       <SectionHeader
         title="Continue to Mintaro"
-        subtitle="Authentication is mocked in this alpha."
+        subtitle="Authentication is mocked in this alpha. Choose your dev-mode account state."
       />
       <View style={styles.box}>
         <Text style={styles.text}>Selected role: {role ?? 'none'}</Text>
-        <Text style={styles.subtext}>Tap below to enter the app shell.</Text>
+        <Text style={styles.subtext}>Tap a preset before entering the app shell.</Text>
+        <View style={styles.row}>
+          <Button
+            title="Account Made"
+            variant={devModePreset === 'account-made' ? 'primary' : 'secondary'}
+            onPress={() => hydrateByPreset('account-made')}
+          />
+          <Button
+            title="Fresh Account"
+            variant={devModePreset === 'fresh-account' ? 'primary' : 'secondary'}
+            onPress={() => hydrateByPreset('fresh-account')}
+          />
+        </View>
       </View>
       <Button
         title="Continue"
@@ -45,6 +57,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     gap: theme.spacing.sm
   },
+  row: { gap: theme.spacing.sm },
   text: {
     fontSize: theme.typography.body,
     color: theme.colors.textPrimary,
