@@ -15,6 +15,7 @@ export type Study = {
   mode: 'Remote' | 'In person' | 'Hybrid';
   tags: string[];
   eligibilitySummary: string;
+  researcherFirstName: string;
   requiredProfileFields: StudyFieldRequirement[];
 };
 

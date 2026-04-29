@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  avatarImage: { width: 88, height: 88, borderRadius: 44 },
+  avatarImage: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#fff' },
   avatarText: { fontSize: theme.typography.h1, color: theme.colors.primaryDark, fontWeight: '700' },
   row: { gap: theme.spacing.xs },
   label: { color: theme.colors.textSecondary },
