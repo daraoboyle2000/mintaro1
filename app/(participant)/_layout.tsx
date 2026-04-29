@@ -1,11 +1,14 @@
-import { Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function ParticipantLayout() {
   const { unreadMyStudiesCount } = useRole();
+  const insets = useSafeAreaInsets();
+  const iconSize = 24;
 
   return (
     <Tabs
@@ -13,7 +16,12 @@ export default function ParticipantLayout() {
         headerStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: { backgroundColor: '#fff', height: 70, paddingTop: 6, paddingBottom: 8 },
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          height: 58 + insets.bottom,
+          paddingTop: 6,
+          paddingBottom: Math.max(insets.bottom, 10)
+        },
         tabBarIconStyle: { marginTop: 2 }
       }}
     >
@@ -21,9 +29,7 @@ export default function ParticipantLayout() {
         name="index"
         options={{
           title: 'Browse',
-          tabBarIcon: () => (
-            <Image source={require('../../assets/icons/tab-browse.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
-          )
+          tabBarIcon: ({ color }) => <Ionicons name="search" size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
@@ -31,18 +37,14 @@ export default function ParticipantLayout() {
         options={{
           title: 'My Studies',
           tabBarBadge: unreadMyStudiesCount > 0 ? `+${unreadMyStudiesCount}` : undefined,
-          tabBarIcon: () => (
-            <Image source={require('../../assets/icons/tab-my-studies.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
-          )
+          tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: () => (
-            <Image source={require('../../assets/icons/tab-profile.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
-          )
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen name="chat/[studyId]" options={{ href: null }} />

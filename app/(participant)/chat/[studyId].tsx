@@ -1,6 +1,16 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from 'react-native';
 
 import { useRole } from '@/context/RoleContext';
 import { mockStudies } from '@/data/mockData';
@@ -38,7 +48,11 @@ export default function StudyChatScreen() {
   }, [thread]);
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+    >
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.studyTitle}>{study ? study.title : 'Study chat'}</Text>
@@ -83,7 +97,7 @@ export default function StudyChatScreen() {
           <Text style={styles.sendText}>Send</Text>
         </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -94,8 +108,17 @@ const styles = StyleSheet.create({
   header: { gap: theme.spacing.sm },
   studyTitle: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   researcherRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
-  researcherAvatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  researcherIcon: { width: 24, height: 24, backgroundColor: '#fff' },
+  researcherAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  researcherIcon: { width: 20, height: 20, tintColor: theme.colors.textSecondary },
   researcherName: { color: theme.colors.textSecondary, fontWeight: '600' },
   dayDivider: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   line: { flex: 1, height: 1, backgroundColor: theme.colors.border },
