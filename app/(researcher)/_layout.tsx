@@ -1,46 +1,46 @@
-import { Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { theme } from '@/theme';
 
 export default function ResearcherLayout() {
+  const insets = useSafeAreaInsets();
+  const iconSize = 24;
+
   return (
     <Tabs
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: { backgroundColor: '#fff', height: 70, paddingTop: 6, paddingBottom: 8 }
+        tabBarStyle: {
+          backgroundColor: '#fff',
+          height: 58 + insets.bottom,
+          paddingTop: 6,
+          paddingBottom: Math.max(insets.bottom, 10)
+        }
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: () => (
-            <Image source={require('../../assets/icons/tab-dashboard.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
-          )
+          tabBarIcon: ({ color }) => <Ionicons name="grid-outline" size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
         name="create-study"
         options={{
           title: 'Create',
-          tabBarIcon: () => (
-            <Image source={require('../../assets/icons/tab-create.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
-          )
+          tabBarIcon: ({ color }) => <Ionicons name="add-circle-outline" size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: () => (
-            <Image
-              source={require('../../assets/icons/tab-profile-researcher.png')}
-              style={{ width: 30, height: 30, backgroundColor: '#fff' }}
-            />
-          )
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen name="study/[id]" options={{ href: null }} />
