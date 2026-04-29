@@ -15,6 +15,7 @@ export const mockStudies: Study[] = [
     mode: 'Remote',
     tags: ['Health', 'Interview', 'Adults 18+'],
     eligibilitySummary: 'Age 18-45, English-speaking, active lifestyle.',
+    researcherFirstName: 'Lena',
     requiredProfileFields: ['ageRange']
   },
   {
@@ -31,6 +32,7 @@ export const mockStudies: Study[] = [
     mode: 'Remote',
     tags: ['Fintech', 'Usability', 'Remote'],
     eligibilitySummary: 'Current mobile banking user, age 21+, U.S. resident.',
+    researcherFirstName: 'Marco',
     requiredProfileFields: ['ageRange', 'distancePreference']
   },
   {
@@ -47,6 +49,7 @@ export const mockStudies: Study[] = [
     mode: 'In person',
     tags: ['Retail', 'In-person', 'Diary'],
     eligibilitySummary: 'Shop for household groceries at least once weekly.',
+    researcherFirstName: 'Ava',
     requiredProfileFields: ['smoker']
   }
 ];

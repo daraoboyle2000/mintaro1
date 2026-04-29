@@ -1,15 +1,6 @@
 import { router } from 'expo-router';
-import { useMemo, useRef, useState } from 'react';
-import {
-  Animated,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View
-} from 'react-native';
+import { useMemo, useState } from 'react';
+import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -29,15 +20,12 @@ export default function ParticipantBrowseScreen() {
     applyToStudy,
     missingFieldsForStudy,
     setProfile,
-    devModePreset,
-    hydrateByPreset
   } = useRole();
   const [search, setSearch] = useState('');
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [hiddenStudyIds, setHiddenStudyIds] = useState<string[]>([]);
   const [questionnaireStudy, setQuestionnaireStudy] = useState<Study | null>(null);
   const [pendingFields, setPendingFields] = useState<StudyFieldRequirement[]>([]);
-  const fade = useRef(new Animated.Value(1)).current;
 
   const studies = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -77,15 +65,8 @@ export default function ParticipantBrowseScreen() {
   };
 
   const runApplyAnimation = (study: Study) => {
-    Animated.timing(fade, {
-      toValue: 0,
-      duration: 220,
-      useNativeDriver: true
-    }).start(() => {
-      applyToStudy(study);
-      setHiddenStudyIds((current) => [...current, study.id]);
-      fade.setValue(1);
-    });
+    applyToStudy(study);
+    setHiddenStudyIds((current) => (current.includes(study.id) ? current : [...current, study.id]));
   };
 
   const onApply = (study: Study) => {
@@ -102,22 +83,6 @@ export default function ParticipantBrowseScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.devCard}>
-        <Text style={styles.devTitle}>Dev mode</Text>
-        <View style={styles.devRow}>
-          <Button
-            title="Account Made"
-            variant={devModePreset === 'account-made' ? 'primary' : 'secondary'}
-            onPress={() => hydrateByPreset('account-made')}
-          />
-          <Button
-            title="Fresh Account"
-            variant={devModePreset === 'fresh-account' ? 'primary' : 'secondary'}
-            onPress={() => hydrateByPreset('fresh-account')}
-          />
-        </View>
-      </View>
-
       <View style={styles.greetingRow}>
         <View style={styles.avatar}><Text style={styles.avatarText}>{headerName.charAt(0).toUpperCase()}</Text></View>
         <SectionHeader title={`Hi ${headerName} 👋`} subtitle="Browse studies matched to your profile" />
@@ -142,7 +107,7 @@ export default function ParticipantBrowseScreen() {
 
       <View style={styles.list}>
         {studies.map((study) => (
-          <Animated.View key={study.id} style={{ opacity: fade }}>
+          <View key={study.id}>
             <Card>
               <Badge label={study.mode} />
               <Text style={styles.cardTitle}>{study.title}</Text>
@@ -151,11 +116,11 @@ export default function ParticipantBrowseScreen() {
                 {study.reward} • {study.duration} • {study.location}
               </Text>
               <View style={styles.rowButtons}>
-                <Button title="View details" variant="secondary" onPress={() => router.push(`/study/${study.id}`)} />
+                <Button title="View details" variant="secondary" onPress={() => router.push(`/(participant)/study/${study.id}`)} />
                 <Button title="Apply" onPress={() => onApply(study)} />
               </View>
             </Card>
-          </Animated.View>
+          </View>
         ))}
       </View>
 
@@ -243,15 +208,6 @@ const styles = StyleSheet.create({
     gap: theme.spacing.lg,
     paddingBottom: theme.spacing.xxl
   },
-  devCard: {
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.md,
-    gap: theme.spacing.sm
-  },
-  devTitle: { fontWeight: '700', color: theme.colors.textPrimary },
-  devRow: { flexDirection: 'row', gap: theme.spacing.sm },
   greetingRow: { flexDirection: 'row', gap: theme.spacing.md, alignItems: 'center' },
   avatar: {
     width: 44,

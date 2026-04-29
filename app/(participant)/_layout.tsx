@@ -13,15 +13,16 @@ export default function ParticipantLayout() {
         headerStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
-        tabBarStyle: { backgroundColor: '#fff' }
+        tabBarStyle: { backgroundColor: '#fff', height: 70, paddingTop: 6, paddingBottom: 8 },
+        tabBarIconStyle: { marginTop: 2 }
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Browse',
-          tabBarIcon: ({ size }) => (
-            <Image source={require('../../assets/icons/tab-browse.png')} style={{ width: size, height: size }} />
+          tabBarIcon: () => (
+            <Image source={require('../../assets/icons/tab-browse.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
           )
         }}
       />
@@ -30,8 +31,8 @@ export default function ParticipantLayout() {
         options={{
           title: 'My Studies',
           tabBarBadge: unreadMyStudiesCount > 0 ? `+${unreadMyStudiesCount}` : undefined,
-          tabBarIcon: ({ size }) => (
-            <Image source={require('../../assets/icons/tab-my-studies.png')} style={{ width: size, height: size }} />
+          tabBarIcon: () => (
+            <Image source={require('../../assets/icons/tab-my-studies.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
           )
         }}
       />
@@ -39,12 +40,13 @@ export default function ParticipantLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size }) => (
-            <Image source={require('../../assets/icons/tab-profile.png')} style={{ width: size, height: size }} />
+          tabBarIcon: () => (
+            <Image source={require('../../assets/icons/tab-profile.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
           )
         }}
       />
       <Tabs.Screen name="chat/[studyId]" options={{ href: null }} />
+      <Tabs.Screen name="study/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

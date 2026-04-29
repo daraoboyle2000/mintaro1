@@ -9,15 +9,16 @@ export default function ResearcherLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.primary,
-        tabBarInactiveTintColor: theme.colors.textSecondary
+        tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarStyle: { backgroundColor: '#fff', height: 70, paddingTop: 6, paddingBottom: 8 }
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ size }) => (
-            <Image source={require('../../assets/icons/tab-dashboard.png')} style={{ width: size, height: size }} />
+          tabBarIcon: () => (
+            <Image source={require('../../assets/icons/tab-dashboard.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
           )
         }}
       />
@@ -25,8 +26,8 @@ export default function ResearcherLayout() {
         name="create-study"
         options={{
           title: 'Create',
-          tabBarIcon: ({ size }) => (
-            <Image source={require('../../assets/icons/tab-create.png')} style={{ width: size, height: size }} />
+          tabBarIcon: () => (
+            <Image source={require('../../assets/icons/tab-create.png')} style={{ width: 30, height: 30, backgroundColor: '#fff' }} />
           )
         }}
       />
@@ -34,10 +35,10 @@ export default function ResearcherLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size }) => (
+          tabBarIcon: () => (
             <Image
               source={require('../../assets/icons/tab-profile-researcher.png')}
-              style={{ width: size, height: size }}
+              style={{ width: 30, height: 30, backgroundColor: '#fff' }}
             />
           )
         }}
