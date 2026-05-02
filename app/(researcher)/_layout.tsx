@@ -1,7 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CreateIcon } from '@/components/icons/tab/CreateIcon';
+import { DashboardIcon } from '@/components/icons/tab/DashboardIcon';
+import { ProfileIcon } from '@/components/icons/tab/ProfileIcon';
 import { theme } from '@/theme';
 
 export default function ResearcherLayout() {
@@ -26,21 +28,21 @@ export default function ResearcherLayout() {
         name="index"
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ color }) => <Ionicons name="grid-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => <DashboardIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
         name="create-study"
         options={{
           title: 'Create',
-          tabBarIcon: ({ color }) => <Ionicons name="add-circle-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => <CreateIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => <ProfileIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen name="study/[id]" options={{ href: null }} />
