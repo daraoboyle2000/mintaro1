@@ -1,31 +1,35 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
-  Image,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Avatar } from '@/components/ui/Avatar';
 import { useRole } from '@/context/RoleContext';
 import { mockStudies } from '@/data/mockData';
 import { ChatMessage } from '@/types';
 import { theme } from '@/theme';
 
+type ChatListRow = { id: string; label: string; message: ChatMessage };
+
 export default function StudyChatScreen() {
   const { studyId } = useLocalSearchParams<{ studyId: string }>();
   const { messages, sendMessage } = useRole();
   const [draft, setDraft] = useState('');
+  const insets = useSafeAreaInsets();
   const study = mockStudies.find((entry) => entry.id === studyId);
 
   const thread = useMemo(() => messages.filter((entry) => entry.studyId === studyId), [messages, studyId]);
-  const grouped = useMemo(() => {
-    const result: Array<{ label: string; message: ChatMessage }> = [];
+  const grouped = useMemo<ChatListRow[]>(() => {
+    const result: ChatListRow[] = [];
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today);
@@ -38,88 +42,85 @@ export default function StudyChatScreen() {
       if (day.getTime() === today.getTime()) label = 'Today';
       if (day.getTime() === yesterday.getTime()) label = 'Yesterday';
       const previousLabel = index > 0 ? result[result.length - 1].label : null;
-      if (previousLabel !== label) {
-        result.push({ label, message });
-      } else {
-        result.push({ label: '', message });
-      }
+      result.push({ id: message.id, label: previousLabel !== label ? label : '', message });
     });
     return result;
   }, [thread]);
 
+  const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
+
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
-    >
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+      >
         <View style={styles.header}>
           <Text style={styles.studyTitle}>{study ? study.title : 'Study chat'}</Text>
           <View style={styles.researcherRow}>
-            <View style={styles.researcherAvatar}>
-              <Image source={require('../../../assets/icons/tab-profile-researcher.png')} style={styles.researcherIcon} />
-            </View>
-            <Text style={styles.researcherName}>{study?.researcherFirstName ?? 'Researcher'}</Text>
+            <Avatar name={researcherName} size={46} />
+            <Text style={styles.researcherName}>{researcherName}</Text>
           </View>
         </View>
-        {grouped.map(({ label, message }) => (
-          <View key={message.id}>
-            {label ? (
-              <View style={styles.dayDivider}>
-                <View style={styles.line} />
-                <Text style={styles.dayLabel}>{label}</Text>
-                <View style={styles.line} />
-              </View>
-            ) : null}
-            <View style={[styles.bubbleRow, message.from === 'participant' ? styles.right : styles.left]}>
-              <View style={[styles.bubble, message.from === 'participant' ? styles.myBubble : styles.theirBubble]}>
-                <Text style={message.from === 'participant' ? styles.myText : styles.theirText}>{message.message}</Text>
+
+        <FlatList
+          data={grouped}
+          keyExtractor={(item) => item.id}
+          style={styles.list}
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <View>
+              {item.label ? (
+                <View style={styles.dayDivider}>
+                  <View style={styles.line} />
+                  <Text style={styles.dayLabel}>{item.label}</Text>
+                  <View style={styles.line} />
+                </View>
+              ) : null}
+              <View style={[styles.bubbleRow, item.message.from === 'participant' ? styles.right : styles.left]}>
+                <View style={[styles.bubble, item.message.from === 'participant' ? styles.myBubble : styles.theirBubble]}>
+                  <Text style={item.message.from === 'participant' ? styles.myText : styles.theirText}>{item.message.message}</Text>
+                </View>
               </View>
             </View>
-          </View>
-        ))}
-      </ScrollView>
-      <View style={styles.composer}>
-        <TextInput
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Type a message"
-          style={styles.input}
+          )}
         />
-        <Pressable
-          style={styles.sendButton}
-          onPress={() => {
-            sendMessage(studyId, draft);
-            setDraft('');
-          }}
-        >
-          <Text style={styles.sendText}>Send</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+
+        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) }] }>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            placeholder="Type a message"
+            style={styles.input}
+            multiline
+            maxLength={400}
+          />
+          <Pressable
+            style={styles.sendButton}
+            onPress={() => {
+              sendMessage(studyId, draft);
+              setDraft('');
+            }}
+          >
+            <Text style={styles.sendText}>Send</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, backgroundColor: theme.colors.background },
-  scroll: { flex: 1 },
-  content: { padding: theme.spacing.lg, gap: theme.spacing.md },
-  header: { gap: theme.spacing.sm },
+  header: { gap: theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg },
   studyTitle: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   researcherRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
-  researcherAvatar: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  researcherIcon: { width: 20, height: 20, tintColor: theme.colors.textSecondary },
   researcherName: { color: theme.colors.textSecondary, fontWeight: '600' },
+  list: { flex: 1 },
+  listContent: { padding: theme.spacing.lg, gap: theme.spacing.md, paddingBottom: theme.spacing.xl },
   dayDivider: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   line: { flex: 1, height: 1, backgroundColor: theme.colors.border },
   dayLabel: { color: theme.colors.textSecondary, fontSize: theme.typography.caption },
@@ -132,12 +133,14 @@ const styles = StyleSheet.create({
   theirText: { color: theme.colors.primaryDark },
   myText: { color: '#fff' },
   composer: {
-    padding: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.md,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
     backgroundColor: '#fff',
     flexDirection: 'row',
-    gap: theme.spacing.sm
+    gap: theme.spacing.sm,
+    alignItems: 'flex-end'
   },
   input: {
     flex: 1,
@@ -145,12 +148,15 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.md,
-    backgroundColor: '#fff'
+    paddingVertical: theme.spacing.sm,
+    backgroundColor: '#fff',
+    maxHeight: 120
   },
   sendButton: {
     backgroundColor: theme.colors.primary,
     borderRadius: theme.radius.md,
     paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
     justifyContent: 'center'
   },
   sendText: { color: '#fff', fontWeight: '700' }

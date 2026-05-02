@@ -1,7 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BrowseIcon } from '@/components/icons/tab/BrowseIcon';
+import { MyStudiesIcon } from '@/components/icons/tab/MyStudiesIcon';
+import { ProfileIcon } from '@/components/icons/tab/ProfileIcon';
 import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
@@ -29,7 +31,7 @@ export default function ParticipantLayout() {
         name="index"
         options={{
           title: 'Browse',
-          tabBarIcon: ({ color }) => <Ionicons name="search" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => <BrowseIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
@@ -37,14 +39,14 @@ export default function ParticipantLayout() {
         options={{
           title: 'My Studies',
           tabBarBadge: unreadMyStudiesCount > 0 ? `+${unreadMyStudiesCount}` : undefined,
-          tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => <MyStudiesIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={iconSize} color={color} />
+          tabBarIcon: ({ color }) => <ProfileIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen name="chat/[studyId]" options={{ href: null }} />
