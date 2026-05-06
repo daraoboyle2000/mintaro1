@@ -36,6 +36,12 @@ npm run android
 npm run web
 ```
 
+## App version tracking
+
+Mintaro's app version is stored in `src/config/appVersion.ts` as `APP_VERSION`, `APP_BUILD_LABEL`, and `APP_LAST_UPDATED`. The existing developer debug menu at launch displays these values near the bottom of the screen so Expo Go testers can confirm which build they are using.
+
+See `VERSION.md` for version history and the instruction to update version metadata when meaningful UI, navigation, or feature changes land.
+
 ## Project structure
 
 ```text
