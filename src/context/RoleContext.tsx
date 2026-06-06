@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { mockApplications, mockMessages } from '@/data/mockData';
 import {
@@ -24,6 +24,7 @@ type RoleContextValue = {
   messages: ChatMessage[];
   sendMessage: (studyId: string, text: string) => void;
   unreadMyStudiesCount: number;
+  markMyStudiesRead: () => void;
   devModePreset: DevModePreset;
   setDevModePreset: (preset: DevModePreset) => void;
   hydrateByPreset: (preset: DevModePreset) => void;
@@ -87,6 +88,15 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       ];
     });
   };
+
+  const markMyStudiesRead = useCallback(() => {
+    setApplications((current) => {
+      if (current.every((entry) => entry.unreadUpdates === 0)) {
+        return current;
+      }
+      return current.map((entry) => ({ ...entry, unreadUpdates: 0 }));
+    });
+  }, []);
 
   const sendMessage = (studyId: string, text: string) => {
     const trimmed = text.trim();
@@ -153,12 +163,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       messages,
       sendMessage,
       unreadMyStudiesCount,
+      markMyStudiesRead,
       devModePreset,
       setDevModePreset,
       hydrateByPreset,
       missingFieldsForStudy
     }),
-    [role, profile, researcherProfile, applications, messages, unreadMyStudiesCount, devModePreset]
+    [role, profile, researcherProfile, applications, messages, unreadMyStudiesCount, markMyStudiesRead, devModePreset]
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;

@@ -1,6 +1,6 @@
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -14,8 +14,14 @@ import { theme } from '@/theme';
 type MyStudyTab = 'Applied' | 'Accepted' | 'Previous';
 
 export default function ApplicationsScreen() {
-  const { applications } = useRole();
+  const { applications, markMyStudiesRead } = useRole();
   const [tab, setTab] = useState<MyStudyTab>('Applied');
+
+  useFocusEffect(
+    useCallback(() => {
+      markMyStudiesRead();
+    }, [markMyStudiesRead])
+  );
 
   const filtered = applications.filter((entry) => {
     if (tab === 'Applied') {
@@ -49,18 +55,33 @@ export default function ApplicationsScreen() {
         }
 
         return (
-          <Card key={application.id}>
-            <Badge label={toBadgeStatus(application.status)} />
-            <Text style={styles.title}>{study.title}</Text>
-            <Text style={styles.text}>Reward: {study.reward}</Text>
-            <Text style={styles.text}>Updated: {application.updatedAt}</Text>
-            <View style={styles.bottomRow}>
-              <Text style={styles.text}>Unread updates: {application.unreadUpdates}</Text>
-              <Pressable onPress={() => router.push(`/(participant)/chat/${study.id}`)}>
-                <Image source={require('../../assets/icons/chat.png')} style={styles.chatIcon} />
-              </Pressable>
-            </View>
-          </Card>
+          <Pressable
+            key={application.id}
+            onPress={() => router.push(`/(participant)/study/${study.id}`)}
+            accessibilityRole="button"
+          >
+            <Card>
+              <Badge label={toBadgeStatus(application.status)} />
+              <Text style={styles.title}>{study.title}</Text>
+              <Text style={styles.text}>Reward: {study.reward}</Text>
+              <Text style={styles.text}>Updated: {application.updatedAt}</Text>
+              <View style={styles.bottomRow}>
+                <Text style={styles.text}>{study.duration} • {study.location}</Text>
+                <Pressable
+                  onPress={(event) => {
+                    event.stopPropagation();
+                    router.push(`/(participant)/chat/${study.id}`);
+                  }}
+                  hitSlop={10}
+                  style={styles.chatButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Open chat for ${study.title}`}
+                >
+                  <Image source={require('../../assets/icons/chat.png')} style={styles.chatIcon} />
+                </Pressable>
+              </View>
+            </Card>
+          </Pressable>
         );
       })}
     </ScrollView>
@@ -73,6 +94,14 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
   title: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   text: { color: theme.colors.textSecondary },
-  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chatIcon: { width: 22, height: 22 }
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.md },
+  chatButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#EAF9F2',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  chatIcon: { width: 32, height: 32 }
 });

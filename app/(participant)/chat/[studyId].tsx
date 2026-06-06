@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -24,6 +25,7 @@ export default function StudyChatScreen() {
   const { studyId } = useLocalSearchParams<{ studyId: string }>();
   const { messages, sendMessage } = useRole();
   const [draft, setDraft] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const study = mockStudies.find((entry) => entry.id === studyId);
 
@@ -48,13 +50,30 @@ export default function StudyChatScreen() {
   }, [thread]);
 
   const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
+  const androidKeyboardPadding = Platform.OS === 'android' ? keyboardHeight : 0;
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 84 : 0}
+        behavior="padding"
+        keyboardVerticalOffset={0}
       >
         <View style={styles.header}>
           <Text style={styles.studyTitle}>{study ? study.title : 'Study chat'}</Text>
@@ -88,7 +107,7 @@ export default function StudyChatScreen() {
           )}
         />
 
-        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) }] }>
+        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) + androidKeyboardPadding }] }>
           <TextInput
             value={draft}
             onChangeText={setDraft}
