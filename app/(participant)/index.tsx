@@ -51,9 +51,82 @@ const defaultFilters: BrowseFilters = {
   distance: { min: '', max: '' }
 };
 
+type BrowseStudy = {
+  original: Study;
+  id: string;
+  title: string;
+  shortDescription: string;
+  tags: string[];
+  mode: Study['mode'];
+  reward: string;
+  rewardValue: number;
+  durationMins: number;
+  location: string;
+  status?: string;
+  isPublished?: boolean;
+  published?: boolean;
+};
+
 function parseRangeValue(value: string) {
-  const parsed = Number(value);
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function getStringField(record: Record<string, unknown>, keys: string[], fallback = '') {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+  return fallback;
+}
+
+function getNumberField(record: Record<string, unknown>, keys: string[], fallback = 0) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+    if (typeof value === 'string') {
+      const match = value.match(/\d+(?:\.\d+)?/);
+      if (match) {
+        return Number(match[0]);
+      }
+    }
+  }
+  return fallback;
+}
+
+function normalizeStudyForBrowse(study: Study): BrowseStudy {
+  const record = study as unknown as Record<string, unknown>;
+  const rawMode = getStringField(record, ['mode', 'studyType', 'type'], study.mode);
+  const mode: Study['mode'] = /hybrid/i.test(rawMode)
+    ? 'Hybrid'
+    : /in[- ]?person|onsite|on-site/i.test(rawMode)
+      ? 'In person'
+      : 'Remote';
+  const rawTags = record.tags;
+
+  return {
+    original: study,
+    id: getStringField(record, ['id'], study.id),
+    title: getStringField(record, ['title'], study.title),
+    shortDescription: getStringField(record, ['shortDescription', 'summary', 'description'], study.shortDescription),
+    tags: Array.isArray(rawTags) ? rawTags.filter((tag): tag is string => typeof tag === 'string') : [],
+    mode,
+    reward: getStringField(record, ['reward', 'rewardAmount'], study.reward),
+    rewardValue: getNumberField(record, ['rewardValue', 'rewardAmount', 'reward'], study.rewardValue),
+    durationMins: getNumberField(record, ['durationMins', 'durationMinutes', 'time', 'duration'], study.durationMins),
+    location: getStringField(record, ['location'], study.location),
+    status: typeof record.status === 'string' ? record.status : undefined,
+    isPublished: typeof record.isPublished === 'boolean' ? record.isPublished : undefined,
+    published: typeof record.published === 'boolean' ? record.published : undefined
+  };
 }
 
 function isRangeMatch(value: number, range: RangeFilter) {
@@ -68,7 +141,17 @@ function isRangeMatch(value: number, range: RangeFilter) {
   return true;
 }
 
-function getStudyDistance(study: Study) {
+function isPublishedStudy(study: BrowseStudy) {
+  if (study.published === false || study.isPublished === false) {
+    return false;
+  }
+  if (study.status && !['published', 'active', 'open'].includes(study.status.toLowerCase())) {
+    return false;
+  }
+  return true;
+}
+
+function getStudyDistance(study: BrowseStudy) {
   if (study.mode === 'Remote') {
     return 0;
   }
@@ -81,7 +164,7 @@ function getStudyDistance(study: Study) {
   return 12;
 }
 
-function getStudyRewardType(study: Study): Exclude<RewardOption, 'Any'> {
+function getStudyRewardType(study: BrowseStudy): Exclude<RewardOption, 'Any'> {
   if (study.rewardValue <= 0) {
     return 'None';
   }
@@ -220,44 +303,82 @@ export default function ParticipantBrowseScreen() {
 
   const studies = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return availableStudies
-      .filter((study) => devModePreset === 'fresh-account' || !hiddenStudyIds.includes(study.id))
-      .filter((study) => {
-        if (!query) {
-          return true;
-        }
-        return (
-          study.title.toLowerCase().includes(query) ||
-          study.shortDescription.toLowerCase().includes(query) ||
-          study.tags.join(' ').toLowerCase().includes(query)
-        );
-      })
-      .filter((study) => {
-        const rewardType = getStudyRewardType(study);
-        if (!filters.rewardTypes.includes('Any') && !filters.rewardTypes.includes(rewardType)) {
-          return false;
-        }
-        if (rewardType === 'Monetary' && !isRangeMatch(study.rewardValue, filters.monetaryReward)) {
-          return false;
-        }
-        if (rewardType === 'Voucher' && !isRangeMatch(study.rewardValue, filters.voucherReward)) {
-          return false;
-        }
-        if (!isRangeMatch(study.durationMins, filters.time)) {
-          return false;
-        }
-        if (!filters.studyTypes.includes('Any')) {
-          const matchesOnline = filters.studyTypes.includes('Online') && (study.mode === 'Remote' || study.mode === 'Hybrid');
-          const matchesInPerson = filters.studyTypes.includes('In person') && (study.mode === 'In person' || study.mode === 'Hybrid');
-          if (!matchesOnline && !matchesInPerson) {
-            return false;
-          }
-        }
-        if (filters.studyTypes.includes('In person') && study.mode !== 'Remote' && !isRangeMatch(getStudyDistance(study), filters.distance)) {
-          return false;
-        }
+    const normalizedStudies = availableStudies.map(normalizeStudyForBrowse);
+    console.log('[Browse debug] total studies from context', availableStudies.length);
+    console.log(
+      '[Browse debug] studies before filtering',
+      normalizedStudies.map((study) => ({
+        id: study.id,
+        title: study.title,
+        status: study.status,
+        published: study.published,
+        isPublished: study.isPublished,
+        type: study.mode,
+        reward: study.reward,
+        rewardValue: study.rewardValue,
+        time: study.durationMins
+      }))
+    );
+    console.log('[Browse debug] active filters', { filters, query, hiddenStudyIds, devModePreset });
+
+    const visibleByStatus = normalizedStudies.filter(isPublishedStudy);
+    console.log('[Browse debug] count after status filter', visibleByStatus.length);
+
+    const visibleByHiddenState = visibleByStatus.filter(
+      (study) => devModePreset === 'fresh-account' || !hiddenStudyIds.includes(study.id)
+    );
+    console.log('[Browse debug] count after hidden/applied filter', visibleByHiddenState.length);
+
+    const visibleBySearch = visibleByHiddenState.filter((study) => {
+      if (!query) {
         return true;
-      });
+      }
+      return (
+        study.title.toLowerCase().includes(query) ||
+        study.shortDescription.toLowerCase().includes(query) ||
+        study.tags.join(' ').toLowerCase().includes(query)
+      );
+    });
+    console.log('[Browse debug] count after search filter', visibleBySearch.length);
+
+    const visibleByReward = visibleBySearch.filter((study) => {
+      const rewardType = getStudyRewardType(study);
+      if (!filters.rewardTypes.includes('Any') && !filters.rewardTypes.includes(rewardType)) {
+        return false;
+      }
+      if (rewardType === 'Monetary' && !isRangeMatch(study.rewardValue, filters.monetaryReward)) {
+        return false;
+      }
+      if (rewardType === 'Voucher' && !isRangeMatch(study.rewardValue, filters.voucherReward)) {
+        return false;
+      }
+      return true;
+    });
+    console.log('[Browse debug] count after reward filter', visibleByReward.length);
+
+    const visibleByTime = visibleByReward.filter((study) => isRangeMatch(study.durationMins, filters.time));
+    console.log('[Browse debug] count after time filter', visibleByTime.length);
+
+    const visibleByStudyType = visibleByTime.filter((study) => {
+      if (filters.studyTypes.includes('Any')) {
+        return true;
+      }
+      const matchesOnline = filters.studyTypes.includes('Online') && (study.mode === 'Remote' || study.mode === 'Hybrid');
+      const matchesInPerson = filters.studyTypes.includes('In person') && (study.mode === 'In person' || study.mode === 'Hybrid');
+      return matchesOnline || matchesInPerson;
+    });
+    console.log('[Browse debug] count after study type filter', visibleByStudyType.length);
+
+    const visibleByDistance = visibleByStudyType.filter((study) => {
+      if (!filters.studyTypes.includes('In person') || study.mode === 'Remote') {
+        return true;
+      }
+      return isRangeMatch(getStudyDistance(study), filters.distance);
+    });
+    console.log('[Browse debug] count after distance filter', visibleByDistance.length);
+    console.log('[Browse debug] final visible studies count', visibleByDistance.length);
+
+    return visibleByDistance.map((study) => study.original);
   }, [availableStudies, search, filters, hiddenStudyIds, devModePreset]);
 
   const showPulse = () => {
