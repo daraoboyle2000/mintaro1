@@ -6,15 +6,18 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
-const rows = [
-  ['Lab / Company', 'Northstar Research'],
+const staticRows = [
   ['Focus Areas', 'Healthcare UX, Fintech'],
   ['Default payout method', 'Placeholder'],
   ['Notifications', 'Email only']
 ];
 
 export default function ResearcherProfileScreen() {
-  const { setRole } = useRole();
+  const { researcherProfile, setRole } = useRole();
+  const rows = [
+    ['Research institution', researcherProfile.institution || 'Not set'],
+    ...staticRows
+  ];
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>

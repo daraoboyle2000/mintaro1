@@ -34,7 +34,13 @@ export default function ContinueScreen() {
       <Button
         title="Continue"
         onPress={() =>
-          router.replace(role === 'researcher' ? '/(researcher)' : '/(participant)')
+          router.replace(
+            devModePreset === 'fresh-account'
+              ? '/(auth)/setup'
+              : role === 'researcher'
+                ? '/(researcher)'
+                : '/(participant)'
+          )
         }
       />
     </View>
