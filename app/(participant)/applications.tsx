@@ -7,14 +7,13 @@ import { Card } from '@/components/ui/Card';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
-import { mockStudies } from '@/data/mockData';
 import { ApplicationStatus } from '@/types';
 import { theme } from '@/theme';
 
 type MyStudyTab = 'Applied' | 'Accepted' | 'Previous';
 
 export default function ApplicationsScreen() {
-  const { applications, markMyStudiesRead } = useRole();
+  const { applications, markMyStudiesRead, studies } = useRole();
   const [tab, setTab] = useState<MyStudyTab>('Applied');
 
   useFocusEffect(
@@ -49,7 +48,7 @@ export default function ApplicationsScreen() {
         ))}
       </View>
       {filtered.map((application) => {
-        const study = mockStudies.find((entry) => entry.id === application.studyId);
+        const study = studies.find((entry) => entry.id === application.studyId);
         if (!study) {
           return null;
         }

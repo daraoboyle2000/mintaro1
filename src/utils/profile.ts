@@ -36,3 +36,43 @@ export function withCalculatedAge<T extends { dateOfBirth?: string; age?: number
     age: calculateAge(profile.dateOfBirth)
   };
 }
+
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function ordinalSuffix(day: number) {
+  if (day >= 11 && day <= 13) {
+    return 'TH';
+  }
+
+  if (day % 10 === 1) {
+    return 'ST';
+  }
+  if (day % 10 === 2) {
+    return 'ND';
+  }
+  if (day % 10 === 3) {
+    return 'RD';
+  }
+  return 'TH';
+}
+
+export function formatDateOfBirth(dateOfBirth?: string) {
+  if (!dateOfBirth) {
+    return 'Not set';
+  }
+
+  const match = DATE_PARTS.exec(dateOfBirth);
+  if (!match) {
+    return dateOfBirth;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+
+  if (day < 1 || day > 31 || month < 1 || month > 12) {
+    return dateOfBirth;
+  }
+
+  return `${day}${ordinalSuffix(day)} ${MONTH_NAMES[month - 1]} ${year}`;
+}

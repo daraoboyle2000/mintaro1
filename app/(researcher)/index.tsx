@@ -4,14 +4,17 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { mockApplicants, mockStudies } from '@/data/mockData';
+import { mockApplicants } from '@/data/mockData';
+import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function ResearcherDashboardScreen() {
+  const { studies } = useRole();
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <SectionHeader title="Researcher Dashboard" subtitle="Tap a study to review details and applicants" />
-      {mockStudies.map((study) => {
+      {studies.map((study) => {
         const studyApplicants = mockApplicants.filter((entry) => entry.studyId === study.id);
         const newApplicants = studyApplicants.filter((entry) => entry.isNew).length;
         return (

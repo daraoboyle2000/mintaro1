@@ -6,13 +6,12 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
-import { mockStudies } from '@/data/mockData';
 import { theme } from '@/theme';
 
 export default function StudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { applyToStudy } = useRole();
-  const study = mockStudies.find((entry) => entry.id === id);
+  const { applyToStudy, studies } = useRole();
+  const study = studies.find((entry) => entry.id === id);
 
   if (!study) {
     return (

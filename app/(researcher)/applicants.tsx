@@ -4,10 +4,13 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { mockApplicants, mockStudies } from '@/data/mockData';
+import { mockApplicants } from '@/data/mockData';
+import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function ApplicantsScreen() {
+  const { studies } = useRole();
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <SectionHeader title="Study Applicants" subtitle="Review and manage incoming applications" />
@@ -15,7 +18,7 @@ export default function ApplicantsScreen() {
         <EmptyState title="No applicants yet" subtitle="Share your study to start receiving applications." />
       ) : (
         mockApplicants.map((applicant) => {
-          const studyTitle = mockStudies.find((study) => study.id === applicant.studyId)?.title;
+          const studyTitle = studies.find((study) => study.id === applicant.studyId)?.title;
           return (
             <Card key={applicant.id}>
               <Badge label={applicant.status} />
