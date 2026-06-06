@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
+import { DateWheelPicker } from '@/components/ui/DateWheelPicker';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { FilterChip } from '@/components/ui/FilterChip';
@@ -11,6 +12,7 @@ import { useRole } from '@/context/RoleContext';
 import { mockStudies } from '@/data/mockData';
 import { Study, StudyFieldRequirement } from '@/types';
 import { theme } from '@/theme';
+import { calculateAge } from '@/utils/profile';
 
 const filterConfig = ['Reward', 'Time', 'Study type'] as const;
 const rewardOptions = ['Any', 'Voucher', 'Monetary', 'None', 'Other'] as const;
@@ -179,7 +181,7 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
 }
 
 export default function ParticipantBrowseScreen() {
-  const { profile, applyToStudy, missingFieldsForStudy, setProfile } = useRole();
+  const { profile, applyToStudy, missingFieldsForStudy, setProfile, devModePreset } = useRole();
   const [search, setSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<FilterPanel | null>(null);
   const [filters, setFilters] = useState<BrowseFilters>(defaultFilters);
@@ -220,7 +222,7 @@ export default function ParticipantBrowseScreen() {
   const studies = useMemo(() => {
     const query = search.trim().toLowerCase();
     return mockStudies
-      .filter((study) => !hiddenStudyIds.includes(study.id))
+      .filter((study) => devModePreset === 'fresh-account' || !hiddenStudyIds.includes(study.id))
       .filter((study) => {
         if (!query) {
           return true;
@@ -257,7 +259,7 @@ export default function ParticipantBrowseScreen() {
         }
         return true;
       });
-  }, [search, filters, hiddenStudyIds]);
+  }, [search, filters, hiddenStudyIds, devModePreset]);
 
   const showPulse = () => {
     pulseOpacity.setValue(0);
@@ -402,15 +404,16 @@ export default function ParticipantBrowseScreen() {
               <Text style={styles.modalText}>Please answer required fields first.</Text>
 
               {pendingFields.includes('ageRange') ? (
-                <TextInput
-                  keyboardType="numeric"
-                  placeholder="Your age"
-                  style={styles.search}
-                  value={profile.age ? `${profile.age}` : ''}
-                  onChangeText={(value) =>
-                    setProfile((current) => ({ ...current, age: value ? Number(value) : undefined }))
-                  }
-                />
+                <View style={styles.filterPanel}>
+                  <Text style={styles.modalText}>Select your date of birth so Mintaro can calculate your age.</Text>
+                  <DateWheelPicker
+                    value={profile.dateOfBirth ?? ''}
+                    onChange={(dateOfBirth) => setProfile((current) => ({ ...current, dateOfBirth }))}
+                  />
+                  {profile.dateOfBirth ? (
+                    <Text style={styles.modalText}>Calculated age: {calculateAge(profile.dateOfBirth) ?? '—'}</Text>
+                  ) : null}
+                </View>
               ) : null}
 
               {pendingFields.includes('smoker') ? (

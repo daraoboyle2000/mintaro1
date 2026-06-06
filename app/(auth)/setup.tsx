@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { DateWheelPicker } from '@/components/ui/DateWheelPicker';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
+import { calculateAge } from '@/utils/profile';
 
 const tutorialSteps = [
   {
@@ -33,7 +35,7 @@ export default function AccountSetupScreen() {
   const [tutorialIndex, setTutorialIndex] = useState(0);
 
   const isResearcher = role === 'researcher';
-  const canContinue = firstName.trim() && lastName.trim() && dateOfBirth.trim() && (!isResearcher || institution.trim());
+  const canContinue = firstName.trim() && lastName.trim() && typeof calculateAge(dateOfBirth) === 'number' && (!isResearcher || institution.trim());
   const currentStep = tutorialSteps[tutorialIndex];
 
   const saveBasics = () => {
@@ -84,12 +86,8 @@ export default function AccountSetupScreen() {
             </View>
             <View style={styles.row}>
               <Text style={styles.label}>Date of birth</Text>
-              <TextInput
-                value={dateOfBirth}
-                onChangeText={setDateOfBirth}
-                placeholder="DD/MM/YYYY"
-                style={styles.input}
-              />
+              <DateWheelPicker value={dateOfBirth} onChange={setDateOfBirth} />
+              {dateOfBirth ? <Text style={styles.agePreview}>Age will be saved as {calculateAge(dateOfBirth) ?? '—'}</Text> : null}
             </View>
             {isResearcher ? (
               <View style={styles.row}>
@@ -139,6 +137,7 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: 'center', padding: theme.spacing.xl, gap: theme.spacing.lg },
   row: { gap: theme.spacing.xs },
   label: { color: theme.colors.textSecondary, fontWeight: '600' },
+  agePreview: { color: theme.colors.primaryDark, fontWeight: '700' },
   input: {
     borderWidth: 1,
     borderColor: theme.colors.border,

@@ -55,6 +55,9 @@ export type ParticipantProfile = {
   smoker?: boolean;
   distancePreference?: 'online' | 'in-person' | 'any';
   avatarUri?: string;
+  avatarScale?: number;
+  avatarOffsetX?: number;
+  avatarOffsetY?: number;
 };
 
 export type DevModePreset = 'account-made' | 'fresh-account';
