@@ -12,8 +12,27 @@ import { mockStudies } from '@/data/mockData';
 import { Study, StudyFieldRequirement } from '@/types';
 import { theme } from '@/theme';
 
-const filterConfig = ['Reward', 'Time', 'Online', 'Distance'] as const;
+const filterConfig = ['Reward', 'Time', 'Study type'] as const;
+const rewardOptions = ['Any', 'Voucher', 'Monetary', 'None', 'Other'] as const;
+const studyTypeOptions = ['Any', 'Online', 'In person'] as const;
 type ApplyPhase = 'idle' | 'loading' | 'success';
+type FilterPanel = (typeof filterConfig)[number];
+type RewardOption = (typeof rewardOptions)[number];
+type StudyTypeOption = (typeof studyTypeOptions)[number];
+
+type RangeFilter = {
+  min: string;
+  max: string;
+};
+
+type BrowseFilters = {
+  rewardTypes: RewardOption[];
+  monetaryReward: RangeFilter;
+  voucherReward: RangeFilter;
+  time: RangeFilter;
+  studyTypes: StudyTypeOption[];
+  distance: RangeFilter;
+};
 
 type StudyCardProps = {
   study: Study;
@@ -21,6 +40,95 @@ type StudyCardProps = {
   onApply: (study: Study) => void;
   onFinished: (study: Study) => void;
 };
+
+const defaultFilters: BrowseFilters = {
+  rewardTypes: ['Any'],
+  monetaryReward: { min: '', max: '' },
+  voucherReward: { min: '', max: '' },
+  time: { min: '', max: '' },
+  studyTypes: ['Any'],
+  distance: { min: '', max: '' }
+};
+
+function parseRangeValue(value: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function isRangeMatch(value: number, range: RangeFilter) {
+  const min = parseRangeValue(range.min);
+  const max = parseRangeValue(range.max);
+  if (typeof min === 'number' && value < min) {
+    return false;
+  }
+  if (typeof max === 'number' && value > max) {
+    return false;
+  }
+  return true;
+}
+
+function getStudyDistance(study: Study) {
+  if (study.mode === 'Remote') {
+    return 0;
+  }
+  if (study.location.includes('Oakland')) {
+    return 8;
+  }
+  if (study.location.includes('San Francisco')) {
+    return 3;
+  }
+  return 12;
+}
+
+function getStudyRewardType(study: Study): Exclude<RewardOption, 'Any'> {
+  if (study.rewardValue <= 0) {
+    return 'None';
+  }
+  if (/voucher|gift card/i.test(study.reward)) {
+    return 'Voucher';
+  }
+  if (/[$€£]|cash|paid|monetary/i.test(study.reward)) {
+    return 'Monetary';
+  }
+  return 'Other';
+}
+
+function CheckboxRow({ label, checked, onPress }: { label: string; checked: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} style={styles.checkboxRow}>
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+        {checked ? <Text style={styles.checkboxTick}>✓</Text> : null}
+      </View>
+      <Text style={styles.checkboxLabel}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function RangeInputs({ label, value, onChange, unit }: { label: string; value: RangeFilter; onChange: (value: RangeFilter) => void; unit: string }) {
+  return (
+    <View style={styles.rangeGroup}>
+      <Text style={styles.rangeLabel}>{label}</Text>
+      <View style={styles.rangeRow}>
+        <TextInput
+          keyboardType="numeric"
+          placeholder="Min"
+          value={value.min}
+          onChangeText={(min) => onChange({ ...value, min })}
+          style={styles.rangeInput}
+        />
+        <Text style={styles.rangeDash}>to</Text>
+        <TextInput
+          keyboardType="numeric"
+          placeholder="Max"
+          value={value.max}
+          onChangeText={(max) => onChange({ ...value, max })}
+          style={styles.rangeInput}
+        />
+        <Text style={styles.rangeUnit}>{unit}</Text>
+      </View>
+    </View>
+  );
+}
 
 function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps) {
   const cardOpacity = useRef(new Animated.Value(1)).current;
@@ -45,26 +153,27 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
 
   return (
     <Animated.View style={{ opacity: cardOpacity, transform: [{ translateY: cardTranslate }] }}>
-      <Card>
-        <Badge label={study.mode} />
-        <Text style={styles.cardTitle}>{study.title}</Text>
-        <Text style={styles.cardDescription}>{study.shortDescription}</Text>
-        <Text style={styles.meta}>
-          {study.reward} • {study.duration} • {study.location}
-        </Text>
-        <Animated.View style={[styles.rowButtons, { opacity: menuOpacity, transform: [{ translateY: menuTranslate }] }]}>
-          <Button title="View details" variant="secondary" onPress={() => router.push(`/(participant)/study/${study.id}`)} />
-          <Pressable
-            disabled={phase !== 'idle'}
-            onPress={() => onApply(study)}
-            style={[styles.applyButton, phase !== 'idle' && styles.applyButtonLocked]}
-          >
-            {phase === 'loading' ? <ActivityIndicator color="#fff" size="small" /> : null}
-            {phase === 'success' ? <Text style={styles.tick}>✓</Text> : null}
-            {phase === 'idle' ? <Text style={styles.applyButtonText}>Apply</Text> : null}
-          </Pressable>
-        </Animated.View>
-      </Card>
+      <Pressable onPress={() => router.push(`/(participant)/study/${study.id}`)} accessibilityRole="button">
+        <Card>
+          <Badge label={study.mode} />
+          <Text style={styles.cardTitle}>{study.title}</Text>
+          <Text style={styles.cardDescription}>{study.shortDescription}</Text>
+          <Text style={styles.meta}>
+            {study.reward} • {study.duration} • {study.location}
+          </Text>
+          <Animated.View style={[styles.rowButtons, { opacity: menuOpacity, transform: [{ translateY: menuTranslate }] }]}>
+            <Pressable
+              disabled={phase !== 'idle'}
+              onPress={() => onApply(study)}
+              style={[styles.applyButton, phase !== 'idle' && styles.applyButtonLocked]}
+            >
+              {phase === 'loading' ? <ActivityIndicator color="#fff" size="small" /> : null}
+              {phase === 'success' ? <Text style={styles.tick}>✓</Text> : null}
+              {phase === 'idle' ? <Text style={styles.applyButtonText}>Apply</Text> : null}
+            </Pressable>
+          </Animated.View>
+        </Card>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -72,7 +181,8 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
 export default function ParticipantBrowseScreen() {
   const { profile, applyToStudy, missingFieldsForStudy, setProfile } = useRole();
   const [search, setSearch] = useState('');
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [openFilter, setOpenFilter] = useState<FilterPanel | null>(null);
+  const [filters, setFilters] = useState<BrowseFilters>(defaultFilters);
   const [hiddenStudyIds, setHiddenStudyIds] = useState<string[]>([]);
   const [questionnaireStudy, setQuestionnaireStudy] = useState<Study | null>(null);
   const [pendingFields, setPendingFields] = useState<StudyFieldRequirement[]>([]);
@@ -80,6 +190,32 @@ export default function ParticipantBrowseScreen() {
   const [showMyStudiesPulse, setShowMyStudiesPulse] = useState(false);
   const pulseOpacity = useRef(new Animated.Value(0)).current;
   const pulseTranslate = useRef(new Animated.Value(10)).current;
+
+  const toggleRewardType = (option: RewardOption) => {
+    setFilters((current) => {
+      if (option === 'Any') {
+        return { ...current, rewardTypes: ['Any'] };
+      }
+      const withoutAny = current.rewardTypes.filter((entry) => entry !== 'Any');
+      const rewardTypes = withoutAny.includes(option)
+        ? withoutAny.filter((entry) => entry !== option)
+        : [...withoutAny, option];
+      return { ...current, rewardTypes: rewardTypes.length > 0 ? rewardTypes : ['Any'] };
+    });
+  };
+
+  const toggleStudyType = (option: StudyTypeOption) => {
+    setFilters((current) => {
+      if (option === 'Any') {
+        return { ...current, studyTypes: ['Any'] };
+      }
+      const withoutAny = current.studyTypes.filter((entry) => entry !== 'Any');
+      const studyTypes = withoutAny.includes(option)
+        ? withoutAny.filter((entry) => entry !== option)
+        : [...withoutAny, option];
+      return { ...current, studyTypes: studyTypes.length > 0 ? studyTypes : ['Any'] };
+    });
+  };
 
   const studies = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -96,27 +232,32 @@ export default function ParticipantBrowseScreen() {
         );
       })
       .filter((study) => {
-        if (activeFilters.includes('Reward') && study.rewardValue < 40) {
+        const rewardType = getStudyRewardType(study);
+        if (!filters.rewardTypes.includes('Any') && !filters.rewardTypes.includes(rewardType)) {
           return false;
         }
-        if (activeFilters.includes('Time') && study.durationMins > 45) {
+        if (rewardType === 'Monetary' && !isRangeMatch(study.rewardValue, filters.monetaryReward)) {
           return false;
         }
-        if (activeFilters.includes('Online') && study.mode === 'In person') {
+        if (rewardType === 'Voucher' && !isRangeMatch(study.rewardValue, filters.voucherReward)) {
           return false;
         }
-        if (activeFilters.includes('Distance') && study.mode === 'Remote') {
+        if (!isRangeMatch(study.durationMins, filters.time)) {
+          return false;
+        }
+        if (!filters.studyTypes.includes('Any')) {
+          const matchesOnline = filters.studyTypes.includes('Online') && (study.mode === 'Remote' || study.mode === 'Hybrid');
+          const matchesInPerson = filters.studyTypes.includes('In person') && (study.mode === 'In person' || study.mode === 'Hybrid');
+          if (!matchesOnline && !matchesInPerson) {
+            return false;
+          }
+        }
+        if (filters.studyTypes.includes('In person') && study.mode !== 'Remote' && !isRangeMatch(getStudyDistance(study), filters.distance)) {
           return false;
         }
         return true;
       });
-  }, [search, activeFilters, hiddenStudyIds]);
-
-  const toggleFilter = (filter: string) => {
-    setActiveFilters((current) =>
-      current.includes(filter) ? current.filter((entry) => entry !== filter) : [...current, filter]
-    );
-  };
+  }, [search, filters, hiddenStudyIds]);
 
   const showPulse = () => {
     pulseOpacity.setValue(0);
@@ -163,23 +304,84 @@ export default function ParticipantBrowseScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.greetingRow}>
           <View style={styles.avatar}><Text style={styles.avatarText}>{headerName.charAt(0).toUpperCase()}</Text></View>
           <SectionHeader title={`Hi ${headerName} 👋`} subtitle="Browse studies matched to your profile" />
         </View>
 
         <TextInput value={search} onChangeText={setSearch} placeholder="Search studies" style={styles.search} />
-        <View style={styles.chips}>
+        <View style={styles.filterButtons}>
           {filterConfig.map((filter) => (
             <FilterChip
               key={filter}
               label={filter}
-              active={activeFilters.includes(filter)}
-              onPress={() => toggleFilter(filter)}
+              active={openFilter === filter}
+              onPress={() => setOpenFilter((current) => (current === filter ? null : filter))}
             />
           ))}
         </View>
+
+        {openFilter ? (
+          <Card>
+            {openFilter === 'Reward' ? (
+              <View style={styles.filterPanel}>
+                {rewardOptions.map((option) => (
+                  <CheckboxRow
+                    key={option}
+                    label={option}
+                    checked={filters.rewardTypes.includes(option)}
+                    onPress={() => toggleRewardType(option)}
+                  />
+                ))}
+                {filters.rewardTypes.includes('Voucher') ? (
+                  <RangeInputs
+                    label="Voucher value"
+                    value={filters.voucherReward}
+                    unit="$"
+                    onChange={(voucherReward) => setFilters((current) => ({ ...current, voucherReward }))}
+                  />
+                ) : null}
+                {filters.rewardTypes.includes('Monetary') ? (
+                  <RangeInputs
+                    label="Monetary reward"
+                    value={filters.monetaryReward}
+                    unit="$"
+                    onChange={(monetaryReward) => setFilters((current) => ({ ...current, monetaryReward }))}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+            {openFilter === 'Time' ? (
+              <RangeInputs
+                label="Study duration"
+                value={filters.time}
+                unit="min"
+                onChange={(time) => setFilters((current) => ({ ...current, time }))}
+              />
+            ) : null}
+            {openFilter === 'Study type' ? (
+              <View style={styles.filterPanel}>
+                {studyTypeOptions.map((option) => (
+                  <CheckboxRow
+                    key={option}
+                    label={option}
+                    checked={filters.studyTypes.includes(option)}
+                    onPress={() => toggleStudyType(option)}
+                  />
+                ))}
+                {filters.studyTypes.includes('In person') ? (
+                  <RangeInputs
+                    label="Distance from you"
+                    value={filters.distance}
+                    unit="mi"
+                    onChange={(distance) => setFilters((current) => ({ ...current, distance }))}
+                  />
+                ) : null}
+              </View>
+            ) : null}
+          </Card>
+        ) : null}
 
         <View style={styles.list}>
           {studies.map((study) => (
@@ -222,7 +424,7 @@ export default function ParticipantBrowseScreen() {
               ) : null}
 
               {pendingFields.includes('distancePreference') ? (
-                <View style={styles.chips}>
+                <View style={styles.filterButtons}>
                   {['online', 'in-person', 'any'].map((option) => (
                     <FilterChip
                       key={option}
@@ -297,7 +499,36 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.body,
     backgroundColor: '#fff'
   },
-  chips: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
+  filterButtons: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
+  filterPanel: { gap: theme.spacing.sm },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingVertical: theme.spacing.xs },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+  checkboxChecked: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
+  checkboxTick: { color: '#fff', fontWeight: '800', lineHeight: 18 },
+  checkboxLabel: { color: theme.colors.textPrimary, fontWeight: '600' },
+  rangeGroup: { gap: theme.spacing.sm },
+  rangeLabel: { color: theme.colors.textPrimary, fontWeight: '700' },
+  rangeRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  rangeInput: {
+    flex: 1,
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: '#fff'
+  },
+  rangeDash: { color: theme.colors.textSecondary, fontWeight: '600' },
+  rangeUnit: { color: theme.colors.textSecondary, minWidth: 28 },
   list: { gap: theme.spacing.md },
   cardTitle: { fontSize: theme.typography.h3, color: theme.colors.textPrimary, fontWeight: '700' },
   cardDescription: { color: theme.colors.textSecondary, fontSize: theme.typography.body },
