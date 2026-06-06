@@ -62,12 +62,17 @@ const emptyResearcherProfile: ResearcherProfile = {
 
 const RoleContext = createContext<RoleContextValue | undefined>(undefined);
 
+function withDefaultStudies(currentStudies: Study[] = []) {
+  const existingIds = new Set(currentStudies.map((study) => study.id));
+  return [...currentStudies, ...mockStudies.filter((study) => !existingIds.has(study.id))];
+}
+
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [profile, setProfileState] = useState<ParticipantProfile>(defaultProfile);
   const [researcherProfile, setResearcherProfile] = useState<ResearcherProfile>(defaultResearcherProfile);
   const [applications, setApplications] = useState<StudyApplication[]>(mockApplications);
-  const [studies, setStudies] = useState<Study[]>(mockStudies);
+  const [studies, setStudies] = useState<Study[]>(() => withDefaultStudies());
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [devModePreset, setDevModePreset] = useState<DevModePreset>('account-made');
 
@@ -76,7 +81,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   };
 
   const createStudy = (study: Study) => {
-    setStudies((current) => [study, ...current]);
+    setStudies((current) => (current.some((entry) => entry.id === study.id) ? current : [study, ...current]));
   };
 
   const applyToStudy = (study: Study) => {
@@ -145,14 +150,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setResearcherProfile(emptyResearcherProfile);
       setApplications([]);
       setMessages([]);
-      setStudies(mockStudies);
+      setStudies(() => withDefaultStudies());
       return;
     }
     setProfileState(withCalculatedAge(defaultProfile));
     setResearcherProfile(defaultResearcherProfile);
     setApplications(mockApplications);
     setMessages(mockMessages);
-    setStudies(mockStudies);
+    setStudies(() => withDefaultStudies());
   };
 
   const unreadMyStudiesCount = useMemo(
