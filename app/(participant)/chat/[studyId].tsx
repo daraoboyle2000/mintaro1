@@ -15,7 +15,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Avatar } from '@/components/ui/Avatar';
 import { useRole } from '@/context/RoleContext';
-import { mockStudies } from '@/data/mockData';
 import { ChatMessage } from '@/types';
 import { theme } from '@/theme';
 
@@ -23,11 +22,11 @@ type ChatListRow = { id: string; label: string; message: ChatMessage };
 
 export default function StudyChatScreen() {
   const { studyId } = useLocalSearchParams<{ studyId: string }>();
-  const { messages, sendMessage } = useRole();
+  const { messages, sendMessage, studies } = useRole();
   const [draft, setDraft] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const study = mockStudies.find((entry) => entry.id === studyId);
+  const study = studies.find((entry) => entry.id === studyId);
 
   const thread = useMemo(() => messages.filter((entry) => entry.studyId === studyId), [messages, studyId]);
   const grouped = useMemo<ChatListRow[]>(() => {

@@ -87,7 +87,6 @@ export default function AccountSetupScreen() {
             <View style={styles.row}>
               <Text style={styles.label}>Date of birth</Text>
               <DateWheelPicker value={dateOfBirth} onChange={setDateOfBirth} />
-              {dateOfBirth ? <Text style={styles.agePreview}>Age will be saved as {calculateAge(dateOfBirth) ?? '—'}</Text> : null}
             </View>
             {isResearcher ? (
               <View style={styles.row}>
@@ -137,7 +136,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: 'center', padding: theme.spacing.xl, gap: theme.spacing.lg },
   row: { gap: theme.spacing.xs },
   label: { color: theme.colors.textSecondary, fontWeight: '600' },
-  agePreview: { color: theme.colors.primaryDark, fontWeight: '700' },
   input: {
     borderWidth: 1,
     borderColor: theme.colors.border,

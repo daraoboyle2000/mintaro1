@@ -1,7 +1,7 @@
 declare const require: (moduleName: string) => any;
 
 import { useRef, useState } from 'react';
-import { Image, Modal, PanResponder, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { DateWheelPicker } from '@/components/ui/DateWheelPicker';
 import { Button } from '@/components/ui/Button';
@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
-import { calculateAge } from '@/utils/profile';
+import { calculateAge, formatDateOfBirth } from '@/utils/profile';
 
 const AVATAR_SIZE = 132;
 
@@ -20,9 +20,15 @@ type DraftAvatar = {
   offsetY: number;
 };
 
+type EditableProfileField = 'firstName' | 'lastName' | 'dateOfBirth';
+
 export default function ParticipantProfileScreen() {
   const { profile, setProfile } = useRole();
   const [draftAvatar, setDraftAvatar] = useState<DraftAvatar | null>(null);
+  const [editingField, setEditingField] = useState<EditableProfileField | null>(null);
+  const [draftFirstName, setDraftFirstName] = useState(profile.firstName);
+  const [draftLastName, setDraftLastName] = useState(profile.lastName ?? '');
+  const [draftDateOfBirth, setDraftDateOfBirth] = useState(profile.dateOfBirth ?? '');
   const panStart = useRef({ x: 0, y: 0 });
   const calculatedAge = calculateAge(profile.dateOfBirth);
 
@@ -43,6 +49,30 @@ export default function ParticipantProfileScreen() {
       );
     }
   });
+
+  const startEditing = (field: EditableProfileField) => {
+    setDraftFirstName(profile.firstName);
+    setDraftLastName(profile.lastName ?? '');
+    setDraftDateOfBirth(profile.dateOfBirth ?? '');
+    setEditingField(field);
+  };
+
+  const saveProfileField = () => {
+    if (!editingField) {
+      return;
+    }
+
+    setProfile((current) => {
+      if (editingField === 'firstName') {
+        return { ...current, firstName: draftFirstName.trim() || current.firstName };
+      }
+      if (editingField === 'lastName') {
+        return { ...current, lastName: draftLastName.trim() };
+      }
+      return { ...current, dateOfBirth: draftDateOfBirth };
+    });
+    setEditingField(null);
+  };
 
   const openGallery = async () => {
     const ImagePicker = require('expo-image-picker');
@@ -82,6 +112,18 @@ export default function ParticipantProfileScreen() {
     setDraftAvatar(null);
   };
 
+  const renderProfileValue = (label: string, value: string, field: EditableProfileField) => (
+    <View style={styles.profileItem}>
+      <View style={styles.profileTextGroup}>
+        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.profileValue}>{value || 'Not set'}</Text>
+      </View>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Edit ${label}`} onPress={() => startEditing(field)} style={styles.editButton}>
+        <Text style={styles.editIcon}>✎</Text>
+      </Pressable>
+    </View>
+  );
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <SectionHeader title="Your Profile" subtitle="Manage participant details and preferences" />
@@ -112,34 +154,35 @@ export default function ParticipantProfileScreen() {
           <Text style={styles.photoHint}>Pick an image, then zoom and move it inside the circle.</Text>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>First name</Text>
-          <TextInput
-            style={styles.input}
-            value={profile.firstName}
-            onChangeText={(value) => setProfile((current) => ({ ...current, firstName: value }))}
-          />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Second name</Text>
-          <TextInput
-            style={styles.input}
-            value={profile.lastName ?? ''}
-            onChangeText={(value) => setProfile((current) => ({ ...current, lastName: value }))}
-          />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Date of birth</Text>
-          <DateWheelPicker
-            value={profile.dateOfBirth ?? ''}
-            onChange={(dateOfBirth) => setProfile((current) => ({ ...current, dateOfBirth }))}
-          />
-        </View>
+        {renderProfileValue('First name', profile.firstName, 'firstName')}
+        {renderProfileValue('Second name', profile.lastName ?? '', 'lastName')}
+        {renderProfileValue('Date of birth', formatDateOfBirth(profile.dateOfBirth), 'dateOfBirth')}
         <View style={styles.ageCard}>
           <Text style={styles.label}>Age</Text>
           <Text style={styles.ageValue}>{typeof calculatedAge === 'number' ? calculatedAge : 'Select your date of birth'}</Text>
         </View>
       </Card>
+
+      <Modal visible={Boolean(editingField)} transparent animationType="slide">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.editorCard}>
+            <Text style={styles.editorTitle}>
+              {editingField === 'firstName' ? 'Edit first name' : editingField === 'lastName' ? 'Edit second name' : 'Edit date of birth'}
+            </Text>
+            {editingField === 'firstName' ? (
+              <TextInput value={draftFirstName} onChangeText={setDraftFirstName} placeholder="First name" style={styles.input} />
+            ) : null}
+            {editingField === 'lastName' ? (
+              <TextInput value={draftLastName} onChangeText={setDraftLastName} placeholder="Second name" style={styles.input} />
+            ) : null}
+            {editingField === 'dateOfBirth' ? <DateWheelPicker value={draftDateOfBirth} onChange={setDraftDateOfBirth} /> : null}
+            <View style={styles.zoomRow}>
+              <Button title="Cancel" variant="secondary" onPress={() => setEditingField(null)} />
+              <Button title="Save" onPress={saveProfileField} />
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={Boolean(draftAvatar)} transparent animationType="slide">
         <View style={styles.modalBackdrop}>
@@ -210,8 +253,29 @@ const styles = StyleSheet.create({
   avatarImage: { width: 88, height: 88, backgroundColor: '#fff' },
   avatarText: { fontSize: theme.typography.h1, color: theme.colors.primaryDark, fontWeight: '700' },
   photoHint: { color: theme.colors.textSecondary, fontSize: theme.typography.caption, textAlign: 'center' },
-  row: { gap: theme.spacing.xs },
   label: { color: theme.colors.textSecondary, fontWeight: '600' },
+  profileItem: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md
+  },
+  profileTextGroup: { flex: 1, gap: theme.spacing.xs },
+  profileValue: { color: theme.colors.textPrimary, fontWeight: '700', fontSize: theme.typography.body },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EAF9F2',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  editIcon: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.h3 },
   input: {
     width: '100%',
     borderWidth: 1,

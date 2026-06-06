@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { mockApplications, mockMessages } from '@/data/mockData';
+import { mockApplications, mockMessages, mockStudies } from '@/data/mockData';
 import {
   ChatMessage,
   DevModePreset,
@@ -21,6 +21,8 @@ type RoleContextValue = {
   researcherProfile: ResearcherProfile;
   setResearcherProfile: (profile: ResearcherProfile) => void;
   applications: StudyApplication[];
+  studies: Study[];
+  createStudy: (study: Study) => void;
   applyToStudy: (study: Study) => void;
   messages: ChatMessage[];
   sendMessage: (studyId: string, text: string) => void;
@@ -65,11 +67,16 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfileState] = useState<ParticipantProfile>(defaultProfile);
   const [researcherProfile, setResearcherProfile] = useState<ResearcherProfile>(defaultResearcherProfile);
   const [applications, setApplications] = useState<StudyApplication[]>(mockApplications);
+  const [studies, setStudies] = useState<Study[]>(mockStudies);
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [devModePreset, setDevModePreset] = useState<DevModePreset>('account-made');
 
   const setProfile = (updater: (profile: ParticipantProfile) => ParticipantProfile) => {
     setProfileState((current) => withCalculatedAge(updater(current)));
+  };
+
+  const createStudy = (study: Study) => {
+    setStudies((current) => [study, ...current]);
   };
 
   const applyToStudy = (study: Study) => {
@@ -138,12 +145,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setResearcherProfile(emptyResearcherProfile);
       setApplications([]);
       setMessages([]);
+      setStudies(mockStudies);
       return;
     }
     setProfileState(withCalculatedAge(defaultProfile));
     setResearcherProfile(defaultResearcherProfile);
     setApplications(mockApplications);
     setMessages(mockMessages);
+    setStudies(mockStudies);
   };
 
   const unreadMyStudiesCount = useMemo(
@@ -160,6 +169,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       researcherProfile,
       setResearcherProfile,
       applications,
+      studies,
+      createStudy,
       applyToStudy,
       messages,
       sendMessage,
@@ -170,7 +181,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       hydrateByPreset,
       missingFieldsForStudy
     }),
-    [role, profile, researcherProfile, applications, messages, unreadMyStudiesCount, markMyStudiesRead, devModePreset]
+    [role, profile, researcherProfile, applications, studies, messages, unreadMyStudiesCount, markMyStudiesRead, devModePreset]
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;

@@ -9,7 +9,6 @@ import { Card } from '@/components/ui/Card';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
-import { mockStudies } from '@/data/mockData';
 import { Study, StudyFieldRequirement } from '@/types';
 import { theme } from '@/theme';
 import { calculateAge } from '@/utils/profile';
@@ -181,7 +180,7 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
 }
 
 export default function ParticipantBrowseScreen() {
-  const { profile, applyToStudy, missingFieldsForStudy, setProfile, devModePreset } = useRole();
+  const { profile, studies: availableStudies, applyToStudy, missingFieldsForStudy, setProfile, devModePreset } = useRole();
   const [search, setSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<FilterPanel | null>(null);
   const [filters, setFilters] = useState<BrowseFilters>(defaultFilters);
@@ -221,7 +220,7 @@ export default function ParticipantBrowseScreen() {
 
   const studies = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return mockStudies
+    return availableStudies
       .filter((study) => devModePreset === 'fresh-account' || !hiddenStudyIds.includes(study.id))
       .filter((study) => {
         if (!query) {
@@ -259,7 +258,7 @@ export default function ParticipantBrowseScreen() {
         }
         return true;
       });
-  }, [search, filters, hiddenStudyIds, devModePreset]);
+  }, [availableStudies, search, filters, hiddenStudyIds, devModePreset]);
 
   const showPulse = () => {
     pulseOpacity.setValue(0);

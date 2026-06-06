@@ -5,12 +5,14 @@ import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { mockApplicants, mockStudies } from '@/data/mockData';
+import { mockApplicants } from '@/data/mockData';
+import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function ResearcherStudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const study = mockStudies.find((entry) => entry.id === id);
+  const { studies } = useRole();
+  const study = studies.find((entry) => entry.id === id);
 
   if (!study) {
     return <EmptyState title="Study not found" subtitle="This study may have been deleted." />;
