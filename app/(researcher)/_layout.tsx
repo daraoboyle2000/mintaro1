@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ApplicantsIcon } from '@/components/icons/tab/ApplicantsIcon';
 import { CreateIcon } from '@/components/icons/tab/CreateIcon';
 import { DashboardIcon } from '@/components/icons/tab/DashboardIcon';
 import { ProfileIcon } from '@/components/icons/tab/ProfileIcon';
@@ -36,6 +37,13 @@ export default function ResearcherLayout() {
         options={{
           title: 'Create',
           tabBarIcon: ({ color }) => <CreateIcon size={iconSize} color={color} />
+        }}
+      />
+      <Tabs.Screen
+        name="applicants"
+        options={{
+          title: 'Applicants',
+          tabBarIcon: ({ color }) => <ApplicantsIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen

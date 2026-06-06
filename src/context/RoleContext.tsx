@@ -11,6 +11,7 @@ import {
   StudyApplication,
   StudyFieldRequirement
 } from '@/types';
+import { withCalculatedAge } from '@/utils/profile';
 
 type RoleContextValue = {
   role: Role | null;
@@ -35,7 +36,7 @@ const defaultProfile: ParticipantProfile = {
   firstName: 'Dara',
   lastName: 'Okafor',
   dateOfBirth: '14/04/1995',
-  age: 29,
+  age: undefined,
   smoker: false,
   distancePreference: 'any'
 };
@@ -68,7 +69,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [devModePreset, setDevModePreset] = useState<DevModePreset>('account-made');
 
   const setProfile = (updater: (profile: ParticipantProfile) => ParticipantProfile) => {
-    setProfileState((current) => updater(current));
+    setProfileState((current) => withCalculatedAge(updater(current)));
   };
 
   const applyToStudy = (study: Study) => {
@@ -121,7 +122,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         return typeof profile.smoker !== 'boolean';
       }
       if (field === 'ageRange') {
-        return typeof profile.age !== 'number';
+        return typeof withCalculatedAge(profile).age !== 'number';
       }
       if (field === 'distancePreference') {
         return !profile.distancePreference;
@@ -139,7 +140,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setMessages([]);
       return;
     }
-    setProfileState(defaultProfile);
+    setProfileState(withCalculatedAge(defaultProfile));
     setResearcherProfile(defaultResearcherProfile);
     setApplications(mockApplications);
     setMessages(mockMessages);
