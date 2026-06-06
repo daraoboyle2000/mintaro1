@@ -12,7 +12,7 @@ export default function WelcomeScreen() {
 
   const chooseRole = (nextRole: Role) => {
     setRole(nextRole);
-    router.replace(nextRole === 'researcher' ? '/(researcher)' : '/(participant)');
+    router.replace('/(auth)/setup');
   };
 
   return (

@@ -1,7 +1,5 @@
 import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useState } from 'react';
 
-import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
@@ -9,7 +7,6 @@ import { theme } from '@/theme';
 
 export default function ParticipantProfileScreen() {
   const { profile, setProfile } = useRole();
-  const [photoInput, setPhotoInput] = useState(profile.avatarUri ?? '');
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -23,18 +20,7 @@ export default function ParticipantProfileScreen() {
               <Text style={styles.avatarText}>{(profile.firstName || 'U').charAt(0).toUpperCase()}</Text>
             </View>
           )}
-
-          <TextInput
-            style={styles.input}
-            placeholder="Paste image URL"
-            value={photoInput}
-            onChangeText={setPhotoInput}
-          />
-          <Button
-            title="Update profile photo"
-            variant="secondary"
-            onPress={() => setProfile((current) => ({ ...current, avatarUri: photoInput || undefined }))}
-          />
+          <Text style={styles.photoHint}>Profile photo</Text>
         </View>
 
         <View style={styles.row}>
@@ -43,6 +29,22 @@ export default function ParticipantProfileScreen() {
             style={styles.input}
             value={profile.firstName}
             onChangeText={(value) => setProfile((current) => ({ ...current, firstName: value }))}
+          />
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Second name</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.lastName ?? ''}
+            onChangeText={(value) => setProfile((current) => ({ ...current, lastName: value }))}
+          />
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Date of birth</Text>
+          <TextInput
+            style={styles.input}
+            value={profile.dateOfBirth ?? ''}
+            onChangeText={(value) => setProfile((current) => ({ ...current, dateOfBirth: value }))}
           />
         </View>
         <View style={styles.row}>
@@ -75,6 +77,7 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: 88, height: 88, borderRadius: 44, backgroundColor: '#fff' },
   avatarText: { fontSize: theme.typography.h1, color: theme.colors.primaryDark, fontWeight: '700' },
+  photoHint: { color: theme.colors.textSecondary, fontSize: theme.typography.caption },
   row: { gap: theme.spacing.xs },
   label: { color: theme.colors.textSecondary },
   input: {

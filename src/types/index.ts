@@ -49,6 +49,8 @@ export type ChatMessage = {
 
 export type ParticipantProfile = {
   firstName: string;
+  lastName?: string;
+  dateOfBirth?: string;
   age?: number;
   smoker?: boolean;
   distancePreference?: 'online' | 'in-person' | 'any';
@@ -56,3 +58,7 @@ export type ParticipantProfile = {
 };
 
 export type DevModePreset = 'account-made' | 'fresh-account';
+
+export type ResearcherProfile = {
+  institution?: string;
+};

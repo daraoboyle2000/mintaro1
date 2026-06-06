@@ -6,13 +6,15 @@ type ButtonProps = {
   title: string;
   onPress?: () => void;
   variant?: 'primary' | 'secondary';
+  disabled?: boolean;
 };
 
-export function Button({ title, onPress, variant = 'primary' }: ButtonProps) {
+export function Button({ title, onPress, variant = 'primary', disabled = false }: ButtonProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.base, variant === 'secondary' ? styles.secondary : styles.primary]}
+      disabled={disabled}
+      style={[styles.base, variant === 'secondary' ? styles.secondary : styles.primary, disabled && styles.disabled]}
     >
       <Text style={[styles.text, variant === 'secondary' && styles.secondaryText]}>{title}</Text>
     </Pressable>
@@ -33,6 +35,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border
+  },
+  disabled: {
+    opacity: 0.45
   },
   text: {
     color: '#fff',

@@ -5,6 +5,7 @@ import {
   ChatMessage,
   DevModePreset,
   ParticipantProfile,
+  ResearcherProfile,
   Role,
   Study,
   StudyApplication,
@@ -16,6 +17,8 @@ type RoleContextValue = {
   setRole: (role: Role | null) => void;
   profile: ParticipantProfile;
   setProfile: (updater: (profile: ParticipantProfile) => ParticipantProfile) => void;
+  researcherProfile: ResearcherProfile;
+  setResearcherProfile: (profile: ResearcherProfile) => void;
   applications: StudyApplication[];
   applyToStudy: (study: Study) => void;
   messages: ChatMessage[];
@@ -29,6 +32,8 @@ type RoleContextValue = {
 
 const defaultProfile: ParticipantProfile = {
   firstName: 'Dara',
+  lastName: 'Okafor',
+  dateOfBirth: '14/04/1995',
   age: 29,
   smoker: false,
   distancePreference: 'any'
@@ -36,9 +41,19 @@ const defaultProfile: ParticipantProfile = {
 
 const emptyProfile: ParticipantProfile = {
   firstName: 'New',
+  lastName: undefined,
+  dateOfBirth: undefined,
   age: undefined,
   smoker: undefined,
   distancePreference: undefined
+};
+
+const defaultResearcherProfile: ResearcherProfile = {
+  institution: 'Northstar Research'
+};
+
+const emptyResearcherProfile: ResearcherProfile = {
+  institution: undefined
 };
 
 const RoleContext = createContext<RoleContextValue | undefined>(undefined);
@@ -46,6 +61,7 @@ const RoleContext = createContext<RoleContextValue | undefined>(undefined);
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [profile, setProfileState] = useState<ParticipantProfile>(defaultProfile);
+  const [researcherProfile, setResearcherProfile] = useState<ResearcherProfile>(defaultResearcherProfile);
   const [applications, setApplications] = useState<StudyApplication[]>(mockApplications);
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [devModePreset, setDevModePreset] = useState<DevModePreset>('account-made');
@@ -108,11 +124,13 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setDevModePreset(preset);
     if (preset === 'fresh-account') {
       setProfileState(emptyProfile);
+      setResearcherProfile(emptyResearcherProfile);
       setApplications([]);
       setMessages([]);
       return;
     }
     setProfileState(defaultProfile);
+    setResearcherProfile(defaultResearcherProfile);
     setApplications(mockApplications);
     setMessages(mockMessages);
   };
@@ -128,6 +146,8 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setRole,
       profile,
       setProfile,
+      researcherProfile,
+      setResearcherProfile,
       applications,
       applyToStudy,
       messages,
@@ -138,7 +158,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       hydrateByPreset,
       missingFieldsForStudy
     }),
-    [role, profile, applications, messages, unreadMyStudiesCount, devModePreset]
+    [role, profile, researcherProfile, applications, messages, unreadMyStudiesCount, devModePreset]
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;
