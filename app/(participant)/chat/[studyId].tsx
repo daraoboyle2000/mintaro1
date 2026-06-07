@@ -1,9 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
+  BackHandler,
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
@@ -20,11 +20,17 @@ import { theme } from '@/theme';
 
 type ChatListRow = { id: string; label: string; message: ChatMessage };
 
+function returnToMyStudies() {
+  router.replace('/(participant)/applications');
+}
+
 export default function StudyChatScreen() {
   const { studyId } = useLocalSearchParams<{ studyId: string }>();
+  const navigation = useNavigation();
   const { messages, sendMessage, studies } = useRole();
   const [draft, setDraft] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [composerHeight, setComposerHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const study = studies.find((entry) => entry.id === studyId);
 
@@ -49,7 +55,31 @@ export default function StudyChatScreen() {
   }, [thread]);
 
   const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
-  const composerBottomPadding = keyboardHeight > 0 ? theme.spacing.md : Math.max(insets.bottom, theme.spacing.md);
+  const isKeyboardVisible = keyboardHeight > 0;
+  const composerBottomPadding = isKeyboardVisible ? theme.spacing.md : Math.max(insets.bottom, theme.spacing.md);
+  const composerBottomOffset = keyboardHeight;
+  const listBottomPadding = composerHeight + composerBottomOffset + theme.spacing.lg;
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        returnToMyStudies();
+        return true;
+      });
+
+      return () => subscription.remove();
+    }, [])
+  );
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerLeft: () => (
+        <Pressable onPress={returnToMyStudies} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back to My Studies">
+          <Text style={styles.backLink}>‹ My Studies</Text>
+        </Pressable>
+      )
+    });
+  }, [navigation]);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -68,12 +98,8 @@ export default function StudyChatScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
+    <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
+      <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.studyTitle}>{study ? study.title : 'Study chat'}</Text>
           <View style={styles.researcherRow}>
@@ -86,8 +112,9 @@ export default function StudyChatScreen() {
           data={grouped}
           keyExtractor={(item) => item.id}
           style={styles.list}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: listBottomPadding }]}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
           renderItem={({ item }) => (
             <View>
               {item.label ? (
@@ -106,7 +133,10 @@ export default function StudyChatScreen() {
           )}
         />
 
-        <View style={[styles.composer, { paddingBottom: composerBottomPadding }] }>
+        <View
+          onLayout={(event) => setComposerHeight(event.nativeEvent.layout.height)}
+          style={[styles.composer, { bottom: composerBottomOffset, paddingBottom: composerBottomPadding }]}
+        >
           <TextInput
             value={draft}
             onChangeText={setDraft}
@@ -125,7 +155,7 @@ export default function StudyChatScreen() {
             <Text style={styles.sendText}>Send</Text>
           </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -134,11 +164,12 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { gap: theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg },
+  backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
   studyTitle: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   researcherRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   researcherName: { color: theme.colors.textSecondary, fontWeight: '600' },
   list: { flex: 1 },
-  listContent: { padding: theme.spacing.lg, gap: theme.spacing.md, paddingBottom: theme.spacing.xl },
+  listContent: { padding: theme.spacing.lg, gap: theme.spacing.md },
   dayDivider: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   line: { flex: 1, height: 1, backgroundColor: theme.colors.border },
   dayLabel: { color: theme.colors.textSecondary, fontSize: theme.typography.caption },
@@ -151,6 +182,9 @@ const styles = StyleSheet.create({
   theirText: { color: theme.colors.primaryDark },
   myText: { color: '#fff' },
   composer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
     paddingHorizontal: theme.spacing.md,
     paddingTop: theme.spacing.md,
     borderTopWidth: 1,

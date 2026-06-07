@@ -41,19 +41,19 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 
 function ordinalSuffix(day: number) {
   if (day >= 11 && day <= 13) {
-    return 'TH';
+    return 'ᵗʰ';
   }
 
   if (day % 10 === 1) {
-    return 'ST';
+    return 'ˢᵗ';
   }
   if (day % 10 === 2) {
-    return 'ND';
+    return 'ⁿᵈ';
   }
   if (day % 10 === 3) {
-    return 'RD';
+    return 'ʳᵈ';
   }
-  return 'TH';
+  return 'ᵗʰ';
 }
 
 export function formatDateOfBirth(dateOfBirth?: string) {
