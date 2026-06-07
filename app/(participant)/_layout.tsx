@@ -18,13 +18,15 @@ export default function ParticipantLayout() {
         headerStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: '#fff',
-          height: 58 + insets.bottom,
-          paddingTop: 6,
-          paddingBottom: Math.max(insets.bottom, 10)
+          height: 56 + Math.max(insets.bottom, 4),
+          paddingTop: 5,
+          paddingBottom: Math.max(insets.bottom - 4, 4)
         },
-        tabBarIconStyle: { marginTop: 2 }
+        tabBarIconStyle: { marginTop: 1 },
+        tabBarLabelStyle: { paddingBottom: 0 }
       }}
     >
       <Tabs.Screen

@@ -49,7 +49,7 @@ export default function StudyChatScreen() {
   }, [thread]);
 
   const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
-  const androidKeyboardPadding = Platform.OS === 'android' ? keyboardHeight : 0;
+  const composerBottomPadding = keyboardHeight > 0 ? theme.spacing.md : Math.max(insets.bottom, theme.spacing.md);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -71,7 +71,7 @@ export default function StudyChatScreen() {
     <SafeAreaView style={styles.safeArea} edges={['left', 'right', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior="padding"
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={0}
       >
         <View style={styles.header}>
@@ -106,7 +106,7 @@ export default function StudyChatScreen() {
           )}
         />
 
-        <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) + androidKeyboardPadding }] }>
+        <View style={[styles.composer, { paddingBottom: composerBottomPadding }] }>
           <TextInput
             value={draft}
             onChangeText={setDraft}

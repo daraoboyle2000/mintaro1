@@ -1,6 +1,20 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  LayoutAnimation,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  UIManager,
+  View
+} from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { DateWheelPicker } from '@/components/ui/DateWheelPicker';
@@ -16,6 +30,10 @@ import { calculateAge } from '@/utils/profile';
 const filterConfig = ['Reward', 'Time', 'Study type'] as const;
 const rewardOptions = ['Any', 'Voucher', 'Monetary', 'None', 'Other'] as const;
 const studyTypeOptions = ['Any', 'Online', 'In person'] as const;
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 type ApplyPhase = 'idle' | 'loading' | 'success';
 type FilterPanel = (typeof filterConfig)[number];
 type RewardOption = (typeof rewardOptions)[number];
@@ -304,31 +322,10 @@ export default function ParticipantBrowseScreen() {
   const studies = useMemo(() => {
     const query = search.trim().toLowerCase();
     const normalizedStudies = availableStudies.map(normalizeStudyForBrowse);
-    console.log('[Browse debug] total studies from context', availableStudies.length);
-    console.log(
-      '[Browse debug] studies before filtering',
-      normalizedStudies.map((study) => ({
-        id: study.id,
-        title: study.title,
-        status: study.status,
-        published: study.published,
-        isPublished: study.isPublished,
-        type: study.mode,
-        reward: study.reward,
-        rewardValue: study.rewardValue,
-        time: study.durationMins
-      }))
-    );
-    console.log('[Browse debug] active filters', { filters, query, hiddenStudyIds, devModePreset });
-
     const visibleByStatus = normalizedStudies.filter(isPublishedStudy);
-    console.log('[Browse debug] count after status filter', visibleByStatus.length);
-
     const visibleByHiddenState = visibleByStatus.filter(
       (study) => devModePreset === 'fresh-account' || !hiddenStudyIds.includes(study.id)
     );
-    console.log('[Browse debug] count after hidden/applied filter', visibleByHiddenState.length);
-
     const visibleBySearch = visibleByHiddenState.filter((study) => {
       if (!query) {
         return true;
@@ -339,8 +336,6 @@ export default function ParticipantBrowseScreen() {
         study.tags.join(' ').toLowerCase().includes(query)
       );
     });
-    console.log('[Browse debug] count after search filter', visibleBySearch.length);
-
     const visibleByReward = visibleBySearch.filter((study) => {
       const rewardType = getStudyRewardType(study);
       if (!filters.rewardTypes.includes('Any') && !filters.rewardTypes.includes(rewardType)) {
@@ -354,11 +349,7 @@ export default function ParticipantBrowseScreen() {
       }
       return true;
     });
-    console.log('[Browse debug] count after reward filter', visibleByReward.length);
-
     const visibleByTime = visibleByReward.filter((study) => isRangeMatch(study.durationMins, filters.time));
-    console.log('[Browse debug] count after time filter', visibleByTime.length);
-
     const visibleByStudyType = visibleByTime.filter((study) => {
       if (filters.studyTypes.includes('Any')) {
         return true;
@@ -367,17 +358,12 @@ export default function ParticipantBrowseScreen() {
       const matchesInPerson = filters.studyTypes.includes('In person') && (study.mode === 'In person' || study.mode === 'Hybrid');
       return matchesOnline || matchesInPerson;
     });
-    console.log('[Browse debug] count after study type filter', visibleByStudyType.length);
-
     const visibleByDistance = visibleByStudyType.filter((study) => {
       if (!filters.studyTypes.includes('In person') || study.mode === 'Remote') {
         return true;
       }
       return isRangeMatch(getStudyDistance(study), filters.distance);
     });
-    console.log('[Browse debug] count after distance filter', visibleByDistance.length);
-    console.log('[Browse debug] final visible studies count', visibleByDistance.length);
-
     return visibleByDistance.map((study) => study.original);
   }, [availableStudies, search, filters, hiddenStudyIds, devModePreset]);
 
@@ -418,6 +404,7 @@ export default function ParticipantBrowseScreen() {
   };
 
   const onApplyFinished = (study: Study) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setHiddenStudyIds((current) => (current.includes(study.id) ? current : [...current, study.id]));
     setApplyPhases((current) => ({ ...current, [study.id]: 'idle' }));
   };
