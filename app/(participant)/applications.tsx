@@ -1,4 +1,5 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
@@ -56,7 +57,7 @@ export default function ApplicationsScreen() {
         return (
           <Pressable
             key={application.id}
-            onPress={() => router.push(`/(participant)/study/${study.id}`)}
+            onPress={() => router.push({ pathname: '/(participant)/study/[id]', params: { id: study.id, from: 'my-studies' } })}
             accessibilityRole="button"
           >
             <Card>
@@ -76,7 +77,7 @@ export default function ApplicationsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Open chat for ${study.title}`}
                 >
-                  <Image source={require('../../assets/icons/chat.png')} style={styles.chatIcon} />
+                  <Ionicons name="chatbubble-ellipses" size={30} color={theme.colors.primaryDark} />
                 </Pressable>
               </View>
             </Card>
@@ -102,5 +103,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  chatIcon: { width: 32, height: 32 }
 });

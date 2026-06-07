@@ -1,5 +1,6 @@
-import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback } from 'react';
+import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -9,9 +10,27 @@ import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function StudyDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { applyToStudy, studies } = useRole();
+  const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
+  const { applications, applyToStudy, studies } = useRole();
   const study = studies.find((entry) => entry.id === id);
+  const application = applications.find((entry) => entry.studyId === id && entry.status !== 'Rejected');
+  const openedFromMyStudies = from === 'my-studies';
+  const isAlreadyApplied = Boolean(application);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!openedFromMyStudies) {
+        return undefined;
+      }
+
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace('/(participant)/applications');
+        return true;
+      });
+
+      return () => subscription.remove();
+    }, [openedFromMyStudies])
+  );
 
   if (!study) {
     return (
@@ -41,7 +60,14 @@ export default function StudyDetailsScreen() {
           ))}
         </View>
       </Card>
-      <Button title="Apply to this study" onPress={() => applyToStudy(study)} />
+      {isAlreadyApplied ? (
+        <View style={styles.appliedState}>
+          <Text style={styles.appliedTitle}>Application submitted</Text>
+          <Text style={styles.appliedText}>You can track this study and message the researcher from My Studies.</Text>
+        </View>
+      ) : (
+        <Button title="Apply to this study" onPress={() => applyToStudy(study)} />
+      )}
     </ScrollView>
   );
 }
@@ -53,5 +79,15 @@ const styles = StyleSheet.create({
   missingText: { color: theme.colors.textSecondary },
   heading: { color: theme.colors.textPrimary, fontWeight: '700', fontSize: theme.typography.h3 },
   text: { color: theme.colors.textSecondary, lineHeight: 20 },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
+  appliedState: {
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    backgroundColor: '#EAF9F2',
+    borderWidth: 1,
+    borderColor: '#D3F3E4',
+    gap: theme.spacing.xs
+  },
+  appliedTitle: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
+  appliedText: { color: theme.colors.textSecondary, lineHeight: 20 }
 });
