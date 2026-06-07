@@ -1,5 +1,5 @@
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   FlatList,
@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,9 +30,12 @@ export default function StudyChatScreen() {
   const navigation = useNavigation();
   const { messages, sendMessage, studies } = useRole();
   const [draft, setDraft] = useState('');
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardScreenY, setKeyboardScreenY] = useState<number | null>(null);
   const [composerHeight, setComposerHeight] = useState(0);
+  const [rootLayout, setRootLayout] = useState({ height: 0, pageY: 0 });
+  const rootRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const study = studies.find((entry) => entry.id === studyId);
 
   const thread = useMemo(() => messages.filter((entry) => entry.studyId === studyId), [messages, studyId]);
@@ -55,9 +59,10 @@ export default function StudyChatScreen() {
   }, [thread]);
 
   const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
-  const isKeyboardVisible = keyboardHeight > 0;
+  const isKeyboardVisible = keyboardScreenY !== null;
+  const rootBottom = rootLayout.height > 0 ? rootLayout.pageY + rootLayout.height : windowHeight;
+  const composerBottomOffset = keyboardScreenY === null ? 0 : Math.max(0, rootBottom - keyboardScreenY);
   const composerBottomPadding = isKeyboardVisible ? theme.spacing.md : Math.max(insets.bottom, theme.spacing.md);
-  const composerBottomOffset = keyboardHeight;
   const listBottomPadding = composerHeight + composerBottomOffset + theme.spacing.lg;
 
   useFocusEffect(
@@ -81,25 +86,39 @@ export default function StudyChatScreen() {
     });
   }, [navigation]);
 
+  const measureRoot = useCallback(() => {
+    requestAnimationFrame(() => {
+      rootRef.current?.measureInWindow((_x, pageY, _width, height) => {
+        setRootLayout({ height, pageY });
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    measureRoot();
+  }, [measureRoot, windowHeight]);
+
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const showSubscription = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
+      measureRoot();
+      setKeyboardScreenY(event.endCoordinates.screenY);
     });
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
-      setKeyboardHeight(0);
+      setKeyboardScreenY(null);
+      measureRoot();
     });
 
     return () => {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, []);
+  }, [measureRoot]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
-      <View style={styles.container}>
+      <View ref={rootRef} onLayout={measureRoot} style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.studyTitle}>{study ? study.title : 'Study chat'}</Text>
           <View style={styles.researcherRow}>
