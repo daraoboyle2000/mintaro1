@@ -62,7 +62,7 @@ export default function StudyChatScreen() {
   const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
   const isKeyboardVisible = keyboardScreenY !== null;
   const rootBottom = rootLayout.height > 0 ? rootLayout.pageY + rootLayout.height : windowHeight;
-  const inputKeyboardLift = isKeyboardVisible ? Math.ceil(inputHeight * 0.6) : 0;
+  const inputKeyboardLift = isKeyboardVisible ? Math.ceil(inputHeight * 0.6) + theme.spacing.xs : 0;
   const composerBottomOffset = keyboardScreenY === null ? 0 : Math.max(0, rootBottom - keyboardScreenY) + inputKeyboardLift;
   const composerBottomPadding = isKeyboardVisible ? theme.spacing.md : Math.max(insets.bottom, theme.spacing.md);
   const listBottomPadding = composerHeight + composerBottomOffset + theme.spacing.lg;
