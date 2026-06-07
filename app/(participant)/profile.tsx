@@ -6,7 +6,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Modal,
-  PanResponder,
   Platform,
   Pressable,
   ScrollView,
@@ -61,67 +60,70 @@ export default function ParticipantProfileScreen() {
   const [draftDateOfBirth, setDraftDateOfBirth] = useState(
     profile.dateOfBirth ?? "",
   );
-  const gestureStart = useRef({ x: 0, y: 0, scale: 1, distance: 0 });
+  const gestureStart = useRef({ x: 0, y: 0, scale: 1, distance: 0, centerX: 0, centerY: 0 });
+  const activeTouchCount = useRef(0);
   const calculatedAge = calculateAge(profile.dateOfBirth);
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => Boolean(draftAvatar),
-    onMoveShouldSetPanResponder: () => Boolean(draftAvatar),
-    onStartShouldSetPanResponderCapture: () => Boolean(draftAvatar),
-    onMoveShouldSetPanResponderCapture: () => Boolean(draftAvatar),
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderGrant: (event) => {
-      const touches = event.nativeEvent.touches;
-      gestureStart.current = {
-        x: draftAvatar?.offsetX ?? 0,
-        y: draftAvatar?.offsetY ?? 0,
-        scale: draftAvatar?.scale ?? 1,
-        distance: getTouchDistance(touches),
-      };
-    },
-    onPanResponderMove: (event, gesture) => {
-      const touches = event.nativeEvent.touches;
-      setDraftAvatar((current) => {
-        if (!current) {
-          return current;
-        }
+  const captureAvatarGestureStart = (touches: Array<{ pageX: number; pageY: number }>, current = draftAvatar) => {
+    if (!current || touches.length === 0) {
+      return;
+    }
 
-        if (touches.length >= 2) {
-          const distance = getTouchDistance(touches);
-          if (!gestureStart.current.distance) {
-            gestureStart.current = {
-              x: current.offsetX - gesture.dx,
-              y: current.offsetY - gesture.dy,
-              scale: current.scale,
-              distance,
-            };
-          }
-          const nextScale =
-            gestureStart.current.distance > 0
-              ? clamp(
-                  gestureStart.current.scale *
-                    (distance / gestureStart.current.distance),
-                  MIN_AVATAR_SCALE,
-                  MAX_AVATAR_SCALE,
-                )
-              : current.scale;
+    const centerX = touches.length >= 2 ? (touches[0].pageX + touches[1].pageX) / 2 : touches[0].pageX;
+    const centerY = touches.length >= 2 ? (touches[0].pageY + touches[1].pageY) / 2 : touches[0].pageY;
+    activeTouchCount.current = touches.length;
+    gestureStart.current = {
+      x: current.offsetX,
+      y: current.offsetY,
+      scale: current.scale,
+      distance: getTouchDistance(touches),
+      centerX,
+      centerY,
+    };
+  };
 
-          return {
-            ...current,
-            offsetX: gestureStart.current.x + gesture.dx,
-            offsetY: gestureStart.current.y + gesture.dy,
-            scale: nextScale,
-          };
-        }
+  const handleAvatarGestureMove = (touches: Array<{ pageX: number; pageY: number }>) => {
+    if (touches.length === 0) {
+      return;
+    }
+
+    setDraftAvatar((current) => {
+      if (!current) {
+        return current;
+      }
+
+      if (activeTouchCount.current !== touches.length) {
+        captureAvatarGestureStart(touches, current);
+        return current;
+      }
+
+      const centerX = touches.length >= 2 ? (touches[0].pageX + touches[1].pageX) / 2 : touches[0].pageX;
+      const centerY = touches.length >= 2 ? (touches[0].pageY + touches[1].pageY) / 2 : touches[0].pageY;
+      const nextOffsetX = gestureStart.current.x + centerX - gestureStart.current.centerX;
+      const nextOffsetY = gestureStart.current.y + centerY - gestureStart.current.centerY;
+
+      if (touches.length >= 2) {
+        const distance = getTouchDistance(touches);
+        const nextScale = gestureStart.current.distance
+          ? clamp(gestureStart.current.scale * (distance / gestureStart.current.distance), MIN_AVATAR_SCALE, MAX_AVATAR_SCALE)
+          : current.scale;
 
         return {
           ...current,
-          offsetX: gestureStart.current.x + gesture.dx,
-          offsetY: gestureStart.current.y + gesture.dy,
+          offsetX: nextOffsetX,
+          offsetY: nextOffsetY,
+          scale: nextScale,
         };
-      });
-    },
-  });
+      }
+
+      return {
+        ...current,
+        offsetX: nextOffsetX,
+        offsetY: nextOffsetY,
+      };
+    });
+  };
+
 
   const startEditing = (field: EditableProfileField) => {
     setDraftFirstName(profile.firstName);
@@ -158,7 +160,7 @@ export default function ParticipantProfileScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: false,
       quality: 0.9,
     });
@@ -340,7 +342,16 @@ export default function ParticipantProfileScreen() {
               </Text>
               <View
                 style={styles.editorAvatarFrame}
-                {...panResponder.panHandlers}
+                onStartShouldSetResponder={() => Boolean(draftAvatar)}
+                onMoveShouldSetResponder={() => Boolean(draftAvatar)}
+                onResponderGrant={(event) => captureAvatarGestureStart(event.nativeEvent.touches)}
+                onResponderMove={(event) => handleAvatarGestureMove(event.nativeEvent.touches)}
+                onResponderRelease={() => {
+                  activeTouchCount.current = 0;
+                }}
+                onResponderTerminate={() => {
+                  activeTouchCount.current = 0;
+                }}
               >
                 {draftAvatar ? (
                   <Image

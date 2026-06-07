@@ -3,16 +3,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  LayoutAnimation,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
   TextInput,
-  UIManager,
   View
 } from 'react-native';
 
@@ -31,9 +28,6 @@ const filterConfig = ['Reward', 'Time', 'Study type'] as const;
 const rewardOptions = ['Any', 'Voucher', 'Monetary', 'None', 'Other'] as const;
 const studyTypeOptions = ['Any', 'Online', 'In person'] as const;
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 type ApplyPhase = 'idle' | 'loading' | 'success';
 type FilterPanel = (typeof filterConfig)[number];
 type RewardOption = (typeof rewardOptions)[number];
@@ -233,8 +227,11 @@ function RangeInputs({ label, value, onChange, unit }: { label: string; value: R
 }
 
 function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps) {
+  const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const cardOpacity = useRef(new Animated.Value(1)).current;
   const cardTranslate = useRef(new Animated.Value(0)).current;
+  const cardHeight = useRef(new Animated.Value(0)).current;
+  const cardSpacing = useRef(new Animated.Value(theme.spacing.md)).current;
   const menuOpacity = useRef(new Animated.Value(1)).current;
   const menuTranslate = useRef(new Animated.Value(0)).current;
 
@@ -248,22 +245,40 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
         Animated.timing(menuOpacity, { toValue: 0, duration: 260, useNativeDriver: true }),
         Animated.timing(menuTranslate, { toValue: 18, duration: 260, useNativeDriver: true }),
         Animated.timing(cardOpacity, { toValue: 0, duration: 420, useNativeDriver: true }),
-        Animated.timing(cardTranslate, { toValue: 30, duration: 420, useNativeDriver: true })
+        Animated.timing(cardTranslate, { toValue: 30, duration: 420, useNativeDriver: true }),
+        Animated.timing(cardHeight, { toValue: 0, duration: 420, useNativeDriver: false }),
+        Animated.timing(cardSpacing, { toValue: 0, duration: 420, useNativeDriver: false })
       ])
     ]).start(() => onFinished(study));
-  }, [cardOpacity, cardTranslate, menuOpacity, menuTranslate, onFinished, phase, study]);
+  }, [cardHeight, cardOpacity, cardSpacing, cardTranslate, menuOpacity, menuTranslate, onFinished, phase, study]);
 
   return (
-    <Animated.View style={{ opacity: cardOpacity, transform: [{ translateY: cardTranslate }] }}>
-      <Pressable onPress={() => router.push(`/(participant)/study/${study.id}`)} accessibilityRole="button">
-        <Card>
-          <Badge label={study.mode} />
-          <Text style={styles.cardTitle}>{study.title}</Text>
-          <Text style={styles.cardDescription}>{study.shortDescription}</Text>
-          <Text style={styles.meta}>
-            {study.reward} • {study.duration} • {study.location}
-          </Text>
-          <Animated.View style={[styles.rowButtons, { opacity: menuOpacity, transform: [{ translateY: menuTranslate }] }]}>
+    <Animated.View
+      style={[
+        styles.studyCardSlot,
+        measuredHeight === null ? null : { height: cardHeight, marginBottom: cardSpacing }
+      ]}
+    >
+      <Animated.View
+        onLayout={(event) => {
+          if (measuredHeight !== null || phase === 'success') {
+            return;
+          }
+          const nextHeight = event.nativeEvent.layout.height;
+          setMeasuredHeight(nextHeight);
+          cardHeight.setValue(nextHeight);
+        }}
+        style={{ opacity: cardOpacity, transform: [{ translateY: cardTranslate }] }}
+      >
+        <Pressable onPress={() => router.push(`/(participant)/study/${study.id}`)} accessibilityRole="button">
+          <Card>
+            <Badge label={study.mode} />
+            <Text style={styles.cardTitle}>{study.title}</Text>
+            <Text style={styles.cardDescription}>{study.shortDescription}</Text>
+            <Text style={styles.meta}>
+              {study.reward} • {study.duration} • {study.location}
+            </Text>
+            <Animated.View style={[styles.rowButtons, { opacity: menuOpacity, transform: [{ translateY: menuTranslate }] }]}>
             <Pressable
               disabled={phase !== 'idle'}
               onPress={() => onApply(study)}
@@ -273,9 +288,10 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
               {phase === 'success' ? <Text style={styles.tick}>✓</Text> : null}
               {phase === 'idle' ? <Text style={styles.applyButtonText}>Apply</Text> : null}
             </Pressable>
-          </Animated.View>
-        </Card>
-      </Pressable>
+            </Animated.View>
+          </Card>
+        </Pressable>
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -404,7 +420,6 @@ export default function ParticipantBrowseScreen() {
   };
 
   const onApplyFinished = (study: Study) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setHiddenStudyIds((current) => (current.includes(study.id) ? current : [...current, study.id]));
     setApplyPhases((current) => ({ ...current, [study.id]: 'idle' }));
   };
@@ -639,7 +654,8 @@ const styles = StyleSheet.create({
   },
   rangeDash: { color: theme.colors.textSecondary, fontWeight: '600' },
   rangeUnit: { color: theme.colors.textSecondary, minWidth: 28 },
-  list: { gap: theme.spacing.md },
+  list: {},
+  studyCardSlot: { overflow: 'hidden' },
   cardTitle: { fontSize: theme.typography.h3, color: theme.colors.textPrimary, fontWeight: '700' },
   cardDescription: { color: theme.colors.textSecondary, fontSize: theme.typography.body },
   meta: { color: theme.colors.textPrimary, fontWeight: '600' },
