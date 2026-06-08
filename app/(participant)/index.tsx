@@ -20,17 +20,19 @@ import { Card } from '@/components/ui/Card';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
-import { Study, StudyFieldRequirement } from '@/types';
+import { studyThemes } from '@/data/studyOptions';
+import { RewardKind, Study, StudyFieldRequirement, StudyTheme } from '@/types';
 import { theme } from '@/theme';
 import { calculateAge } from '@/utils/profile';
 
-const filterConfig = ['Reward', 'Time', 'Study type'] as const;
+const filterConfig = ['Reward', 'Time', 'Study type', 'Theme'] as const;
 const rewardOptions = ['Any', 'Voucher', 'Monetary', 'None', 'Other'] as const;
 const studyTypeOptions = ['Any', 'Online', 'In person'] as const;
 
 type ApplyPhase = 'idle' | 'loading' | 'success';
 type FilterPanel = (typeof filterConfig)[number];
 type RewardOption = (typeof rewardOptions)[number];
+type ThemeOption = 'Any' | StudyTheme;
 type StudyTypeOption = (typeof studyTypeOptions)[number];
 
 type RangeFilter = {
@@ -45,6 +47,7 @@ type BrowseFilters = {
   time: RangeFilter;
   studyTypes: StudyTypeOption[];
   distance: RangeFilter;
+  themes: ThemeOption[];
 };
 
 type StudyCardProps = {
@@ -60,7 +63,8 @@ const defaultFilters: BrowseFilters = {
   voucherReward: { min: '', max: '' },
   time: { min: '', max: '' },
   studyTypes: ['Any'],
-  distance: { min: '', max: '' }
+  distance: { min: '', max: '' },
+  themes: ['Any']
 };
 
 type BrowseStudy = {
@@ -74,6 +78,8 @@ type BrowseStudy = {
   rewardValue: number;
   durationMins: number;
   location: string;
+  theme: StudyTheme;
+  rewardKind?: RewardKind;
   status?: string;
   isPublished?: boolean;
   published?: boolean;
@@ -135,6 +141,8 @@ function normalizeStudyForBrowse(study: Study): BrowseStudy {
     rewardValue: getNumberField(record, ['rewardValue', 'rewardAmount', 'reward'], study.rewardValue),
     durationMins: getNumberField(record, ['durationMins', 'durationMinutes', 'time', 'duration'], study.durationMins),
     location: getStringField(record, ['location'], study.location),
+    theme: (typeof record.theme === 'string' ? record.theme : study.theme) as StudyTheme,
+    rewardKind: (typeof record.rewardKind === 'string' ? record.rewardKind : study.rewardKind) as RewardKind,
     status: typeof record.status === 'string' ? record.status : undefined,
     isPublished: typeof record.isPublished === 'boolean' ? record.isPublished : undefined,
     published: typeof record.published === 'boolean' ? record.published : undefined
@@ -180,10 +188,10 @@ function getStudyRewardType(study: BrowseStudy): Exclude<RewardOption, 'Any'> {
   if (study.rewardValue <= 0) {
     return 'None';
   }
-  if (/voucher|gift card/i.test(study.reward)) {
+  if (study.rewardKind === 'Voucher / gift card' || /voucher|gift card/i.test(study.reward)) {
     return 'Voucher';
   }
-  if (/[$€£]|cash|paid|monetary/i.test(study.reward)) {
+  if (study.rewardKind === 'Monetary' || /[$€£]|cash|paid|monetary/i.test(study.reward)) {
     return 'Monetary';
   }
   return 'Other';
@@ -272,7 +280,10 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
       >
         <Pressable onPress={() => router.push(`/(participant)/study/${study.id}`)} accessibilityRole="button">
           <Card>
-            <Badge label={study.mode} />
+            <View style={styles.badgeRow}>
+              <Badge label={study.mode} />
+              <Badge label={study.theme} />
+            </View>
             <Text style={styles.cardTitle}>{study.title}</Text>
             <Text style={styles.cardDescription}>{study.shortDescription}</Text>
             <Text style={styles.meta}>
@@ -297,7 +308,7 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
 }
 
 export default function ParticipantBrowseScreen() {
-  const { profile, studies: availableStudies, applyToStudy, missingFieldsForStudy, setProfile, devModePreset } = useRole();
+  const { profile, studies: availableStudies, applyToStudy, missingFieldsForStudy, setProfile, devModePreset, setRole, isResearcherSetupComplete } = useRole();
   const [search, setSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<FilterPanel | null>(null);
   const [filters, setFilters] = useState<BrowseFilters>(defaultFilters);
@@ -332,6 +343,20 @@ export default function ParticipantBrowseScreen() {
         ? withoutAny.filter((entry) => entry !== option)
         : [...withoutAny, option];
       return { ...current, studyTypes: studyTypes.length > 0 ? studyTypes : ['Any'] };
+    });
+  };
+
+
+  const toggleTheme = (option: ThemeOption) => {
+    setFilters((current) => {
+      if (option === 'Any') {
+        return { ...current, themes: ['Any'] };
+      }
+      const withoutAny = current.themes.filter((entry) => entry !== 'Any');
+      const themes = withoutAny.includes(option)
+        ? withoutAny.filter((entry) => entry !== option)
+        : [...withoutAny, option];
+      return { ...current, themes: themes.length > 0 ? themes : ['Any'] };
     });
   };
 
@@ -374,7 +399,10 @@ export default function ParticipantBrowseScreen() {
       const matchesInPerson = filters.studyTypes.includes('In person') && (study.mode === 'In person' || study.mode === 'Hybrid');
       return matchesOnline || matchesInPerson;
     });
-    const visibleByDistance = visibleByStudyType.filter((study) => {
+    const visibleByTheme = visibleByStudyType.filter((study) =>
+      filters.themes.includes('Any') || filters.themes.includes(study.theme)
+    );
+    const visibleByDistance = visibleByTheme.filter((study) => {
       if (!filters.studyTypes.includes('In person') || study.mode === 'Remote') {
         return true;
       }
@@ -433,6 +461,15 @@ export default function ParticipantBrowseScreen() {
           <View style={styles.avatar}><Text style={styles.avatarText}>{headerName.charAt(0).toUpperCase()}</Text></View>
           <SectionHeader title={`Hi ${headerName} 👋`} subtitle="Browse studies matched to your profile" />
         </View>
+
+        <Button
+          title="Switch to researcher"
+          variant="secondary"
+          onPress={() => {
+            setRole('researcher');
+            router.replace(isResearcherSetupComplete ? '/(researcher)' : '/(auth)/setup');
+          }}
+        />
 
         <TextInput value={search} onChangeText={setSearch} placeholder="Search studies" style={styles.search} />
         <View style={styles.filterButtons}>
@@ -502,6 +539,18 @@ export default function ParticipantBrowseScreen() {
                     onChange={(distance) => setFilters((current) => ({ ...current, distance }))}
                   />
                 ) : null}
+              </View>
+            ) : null}
+            {openFilter === 'Theme' ? (
+              <View style={styles.filterPanel}>
+                {(['Any', ...studyThemes] as ThemeOption[]).map((option) => (
+                  <CheckboxRow
+                    key={option}
+                    label={option}
+                    checked={filters.themes.includes(option)}
+                    onPress={() => toggleTheme(option)}
+                  />
+                ))}
               </View>
             ) : null}
           </Card>
@@ -626,6 +675,7 @@ const styles = StyleSheet.create({
   },
   filterButtons: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
   filterPanel: { gap: theme.spacing.sm },
+  badgeRow: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, paddingVertical: theme.spacing.xs },
   checkbox: {
     width: 22,

@@ -22,7 +22,7 @@ import { theme } from '@/theme';
 type ChatListRow = { id: string; label: string; message: ChatMessage };
 
 function returnToMyStudies() {
-  router.replace('/(participant)/applications');
+  router.replace('/(researcher)');
 }
 
 export default function StudyChatScreen() {
@@ -59,7 +59,7 @@ export default function StudyChatScreen() {
     return result;
   }, [thread]);
 
-  const researcherName = study?.researcherFirstName ? `${study.researcherFirstName} Researcher` : 'Researcher';
+  const researcherName = 'Participant chat';
   const isKeyboardVisible = keyboardScreenY !== null;
   const rootBottom = rootLayout.height > 0 ? rootLayout.pageY + rootLayout.height : windowHeight;
   const inputKeyboardLift = isKeyboardVisible ? Math.ceil(inputHeight * 0.6) + theme.spacing.xs : 0;
@@ -145,9 +145,9 @@ export default function StudyChatScreen() {
                   <View style={styles.line} />
                 </View>
               ) : null}
-              <View style={[styles.bubbleRow, item.message.from === 'participant' ? styles.right : styles.left]}>
-                <View style={[styles.bubble, item.message.from === 'participant' ? styles.myBubble : styles.theirBubble]}>
-                  <Text style={item.message.from === 'participant' ? styles.myText : styles.theirText}>{item.message.message}</Text>
+              <View style={[styles.bubbleRow, item.message.from === 'researcher' ? styles.right : styles.left]}>
+                <View style={[styles.bubble, item.message.from === 'researcher' ? styles.myBubble : styles.theirBubble]}>
+                  <Text style={item.message.from === 'researcher' ? styles.myText : styles.theirText}>{item.message.message}</Text>
                 </View>
               </View>
             </View>
@@ -170,7 +170,7 @@ export default function StudyChatScreen() {
           <Pressable
             style={styles.sendButton}
             onPress={() => {
-              sendMessage(studyId, draft);
+              sendMessage(studyId, draft, 'researcher');
               setDraft('');
             }}
           >

@@ -19,19 +19,21 @@ type RoleContextValue = {
   profile: ParticipantProfile;
   setProfile: (updater: (profile: ParticipantProfile) => ParticipantProfile) => void;
   researcherProfile: ResearcherProfile;
-  setResearcherProfile: (profile: ResearcherProfile) => void;
+  setResearcherProfile: (updater: ResearcherProfile | ((profile: ResearcherProfile) => ResearcherProfile)) => void;
   applications: StudyApplication[];
   studies: Study[];
   createStudy: (study: Study) => void;
   applyToStudy: (study: Study) => void;
   messages: ChatMessage[];
-  sendMessage: (studyId: string, text: string) => void;
+  sendMessage: (studyId: string, text: string, from?: 'participant' | 'researcher') => void;
   unreadMyStudiesCount: number;
   markMyStudiesRead: () => void;
   devModePreset: DevModePreset;
   setDevModePreset: (preset: DevModePreset) => void;
   hydrateByPreset: (preset: DevModePreset) => void;
   missingFieldsForStudy: (study: Study) => StudyFieldRequirement[];
+  isParticipantSetupComplete: boolean;
+  isResearcherSetupComplete: boolean;
 };
 
 const defaultProfile: ParticipantProfile = {
@@ -53,11 +55,21 @@ const emptyProfile: ParticipantProfile = {
 };
 
 const defaultResearcherProfile: ResearcherProfile = {
-  institution: 'Northstar Research'
+  firstName: 'Lena',
+  lastName: 'Morris',
+  institution: 'Northstar Research',
+  focusAreas: ['Healthcare UX', 'Fintech'],
+  defaultPayoutMethod: 'Bank transfer',
+  notifications: 'Email and push'
 };
 
 const emptyResearcherProfile: ResearcherProfile = {
-  institution: undefined
+  firstName: undefined,
+  lastName: undefined,
+  institution: undefined,
+  focusAreas: [],
+  defaultPayoutMethod: undefined,
+  notifications: undefined
 };
 
 const RoleContext = createContext<RoleContextValue | undefined>(undefined);
@@ -70,7 +82,7 @@ function withDefaultStudies(currentStudies: Study[] = []) {
 export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<Role | null>(null);
   const [profile, setProfileState] = useState<ParticipantProfile>(defaultProfile);
-  const [researcherProfile, setResearcherProfile] = useState<ResearcherProfile>(defaultResearcherProfile);
+  const [researcherProfile, setResearcherProfileState] = useState<ResearcherProfile>(defaultResearcherProfile);
   const [applications, setApplications] = useState<StudyApplication[]>(mockApplications);
   const [studies, setStudies] = useState<Study[]>(() => withDefaultStudies());
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
@@ -78,6 +90,12 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const setProfile = (updater: (profile: ParticipantProfile) => ParticipantProfile) => {
     setProfileState((current) => withCalculatedAge(updater(current)));
+  };
+
+  const setResearcherProfile = (updater: ResearcherProfile | ((profile: ResearcherProfile) => ResearcherProfile)) => {
+    setResearcherProfileState((current) =>
+      typeof updater === 'function' ? (updater as (profile: ResearcherProfile) => ResearcherProfile)(current) : updater
+    );
   };
 
   const createStudy = (study: Study) => {
@@ -111,7 +129,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const sendMessage = (studyId: string, text: string) => {
+  const sendMessage = (studyId: string, text: string, from: 'participant' | 'researcher' = 'participant') => {
     const trimmed = text.trim();
     if (!trimmed) {
       return;
@@ -121,7 +139,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       {
         id: `m-${Date.now()}`,
         studyId,
-        from: 'participant',
+        from,
         message: trimmed,
         sentAt: new Date().toISOString().replace('T', ' ').slice(0, 16)
       }
@@ -130,7 +148,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const missingFieldsForStudy = (study: Study) => {
     return study.requiredProfileFields.filter((field) => {
-      if (field === 'smoker') {
+      if (field === 'smoker' || field === 'smokingStatus') {
         return typeof profile.smoker !== 'boolean';
       }
       if (field === 'ageRange') {
@@ -147,14 +165,14 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setDevModePreset(preset);
     if (preset === 'fresh-account') {
       setProfileState(emptyProfile);
-      setResearcherProfile(emptyResearcherProfile);
+        setResearcherProfileState(emptyResearcherProfile);
       setApplications([]);
       setMessages([]);
       setStudies(() => withDefaultStudies());
       return;
     }
     setProfileState(withCalculatedAge(defaultProfile));
-    setResearcherProfile(defaultResearcherProfile);
+    setResearcherProfileState(defaultResearcherProfile);
     setApplications(mockApplications);
     setMessages(mockMessages);
     setStudies(() => withDefaultStudies());
@@ -163,6 +181,23 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const unreadMyStudiesCount = useMemo(
     () => applications.reduce((sum, entry) => sum + entry.unreadUpdates, 0),
     [applications]
+  );
+
+
+  const isParticipantSetupComplete = Boolean(
+    profile.firstName &&
+      profile.firstName !== 'New' &&
+      profile.lastName &&
+      typeof withCalculatedAge(profile).age === 'number'
+  );
+
+  const isResearcherSetupComplete = Boolean(
+    researcherProfile.firstName &&
+      researcherProfile.lastName &&
+      researcherProfile.institution &&
+      researcherProfile.focusAreas?.length &&
+      researcherProfile.defaultPayoutMethod &&
+      researcherProfile.notifications
   );
 
   const value = useMemo(
@@ -184,9 +219,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       devModePreset,
       setDevModePreset,
       hydrateByPreset,
-      missingFieldsForStudy
+      missingFieldsForStudy,
+      isParticipantSetupComplete,
+      isResearcherSetupComplete
     }),
-    [role, profile, researcherProfile, applications, studies, messages, unreadMyStudiesCount, markMyStudiesRead, devModePreset]
+    [role, profile, researcherProfile, applications, studies, messages, unreadMyStudiesCount, markMyStudiesRead, devModePreset, isParticipantSetupComplete, isResearcherSetupComplete]
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;

@@ -1,9 +1,8 @@
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ApplicantsIcon } from '@/components/icons/tab/ApplicantsIcon';
 import { CreateIcon } from '@/components/icons/tab/CreateIcon';
-import { DashboardIcon } from '@/components/icons/tab/DashboardIcon';
+import { MyStudiesIcon } from '@/components/icons/tab/MyStudiesIcon';
 import { ProfileIcon } from '@/components/icons/tab/ProfileIcon';
 import { theme } from '@/theme';
 
@@ -28,8 +27,8 @@ export default function ResearcherLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => <DashboardIcon size={iconSize} color={color} />
+          title: 'My Studies',
+          tabBarIcon: ({ color }) => <MyStudiesIcon size={iconSize} color={color} />
         }}
       />
       <Tabs.Screen
@@ -39,13 +38,7 @@ export default function ResearcherLayout() {
           tabBarIcon: ({ color }) => <CreateIcon size={iconSize} color={color} />
         }}
       />
-      <Tabs.Screen
-        name="applicants"
-        options={{
-          title: 'Applicants',
-          tabBarIcon: ({ color }) => <ApplicantsIcon size={iconSize} color={color} />
-        }}
-      />
+      <Tabs.Screen name="applicants" options={{ href: null }} />
       <Tabs.Screen
         name="profile"
         options={{
@@ -54,6 +47,7 @@ export default function ResearcherLayout() {
         }}
       />
       <Tabs.Screen name="study/[id]" options={{ href: null }} />
+      <Tabs.Screen name="chat/[studyId]" options={{ href: null }} />
     </Tabs>
   );
 }
