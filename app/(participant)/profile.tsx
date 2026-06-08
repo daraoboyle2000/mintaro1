@@ -1,5 +1,6 @@
 declare const require: (moduleName: string) => any;
 
+import { router } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Dimensions,
@@ -64,7 +65,7 @@ type DraftAvatar = {
 type EditableProfileField = "firstName" | "lastName" | "dateOfBirth";
 
 export default function ParticipantProfileScreen() {
-  const { profile, setProfile } = useRole();
+  const { profile, setProfile, setRole, isResearcherSetupComplete } = useRole();
   const [draftAvatar, setDraftAvatar] = useState<DraftAvatar | null>(null);
   const [editingField, setEditingField] = useState<EditableProfileField | null>(
     null,
@@ -396,6 +397,16 @@ export default function ParticipantProfileScreen() {
             </View>
           </View>
         </Modal>
+
+
+        <Button
+          title="Switch to researcher view"
+          variant="secondary"
+          onPress={() => {
+            setRole("researcher");
+            router.replace(isResearcherSetupComplete ? "/(researcher)" : "/(auth)/setup");
+          }}
+        />
 
         <Modal visible={Boolean(draftAvatar)} transparent animationType="slide">
           <View style={styles.avatarModalBackdrop}>

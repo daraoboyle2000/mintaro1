@@ -26,10 +26,13 @@ export default function ResearcherStudyDetailsScreen() {
       <Card>
         <Text style={styles.heading}>Study info</Text>
         <Text style={styles.text}>{study.details}</Text>
-        <Text style={styles.text}>Reward: {study.reward}</Text>
-        <Text style={styles.text}>Duration: {study.duration}</Text>
+        <Text style={styles.text}>Theme: {study.theme}</Text>
+        <Text style={styles.text}>Reward: {study.rewardKind} · {study.reward}</Text>
+        <Text style={styles.text}>Duration: {study.durationMins} min</Text>
+        <Text style={styles.text}>Location type: {study.locationKind}</Text>
         <Text style={styles.text}>Location: {study.location}</Text>
         <Text style={styles.text}>Eligibility: {study.eligibilitySummary}</Text>
+        <Text style={styles.text}>Required info: {study.requiredInfoFields.join(', ')}</Text>
       </Card>
 
       <SectionHeader title="Applicants" subtitle="New applicants are labeled" />
