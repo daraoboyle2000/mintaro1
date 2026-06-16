@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterChip } from '@/components/ui/FilterChip';
@@ -26,17 +27,19 @@ function firstNameLabel(applicant: Applicant) {
 export default function ResearcherStudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
-  const { applicants: allApplicants, markResearcherStudyRead, studies } = useRole();
+  const { applicants: allApplicants, deleteStudy, markResearcherStudyRead, setStudyActive, studies } = useRole();
   const [activeTab, setActiveTab] = useState<ApplicantTab>('Eligible');
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'activate' | 'deactivate' | 'delete' | null>(null);
   const study = studies.find((entry) => entry.id === id);
 
   useLayoutEffect(() => {
     navigation.setOptions({
       headerTitle: '',
       headerLeft: () => (
-        <Pressable onPress={returnToMyStudies} hitSlop={10} style={styles.backLink} accessibilityRole="button" accessibilityLabel="Back to My Studies">
-          <Text style={styles.backText}>← {study?.title ?? 'My Studies'}</Text>
+        <Pressable onPress={returnToMyStudies} hitSlop={10} style={styles.backPill} accessibilityRole="button" accessibilityLabel="Back to My Studies">
+          <Text style={styles.backArrow}>←</Text><Text style={styles.backText}>{study?.title ?? 'My Studies'}</Text>
         </Pressable>
       )
     });
@@ -57,10 +60,16 @@ export default function ResearcherStudyDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionHeader title={study.title} />
+      <View style={styles.titleRow}><SectionHeader title={study.title} /><Pressable onPress={() => setMenuOpen((current) => !current)} hitSlop={12} accessibilityRole="button" accessibilityLabel={`Study settings for ${study.title}`}><Ionicons name="ellipsis-horizontal" size={26} color={theme.colors.primaryDark} /></Pressable></View>
+      {menuOpen ? (
+        <Card>
+          <Pressable onPress={() => setConfirmAction(study.isActive === false ? 'activate' : 'deactivate')}><Text style={styles.menuItem}>{study.isActive === false ? 'Activate study' : 'Deactivate study'}</Text></Pressable>
+          <Pressable onPress={() => setConfirmAction('delete')}><Text style={[styles.menuItem, styles.deleteText]}>Delete study</Text></Pressable>
+        </Card>
+      ) : null}
       <Card>
         <Pressable onPress={() => setDetailsOpen((current) => !current)} style={styles.rowBetween} accessibilityRole="button">
-          <Text style={styles.heading}>Study details {detailsOpen ? '⌃' : '⌄'}</Text>
+          <Text style={styles.heading}>Study details</Text>
           <Ionicons name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.primaryDark} />
         </Pressable>
         {detailsOpen ? (
@@ -103,6 +112,15 @@ export default function ResearcherStudyDetailsScreen() {
           );
         })
       )}
+      <Modal visible={Boolean(confirmAction)} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{confirmAction === 'delete' ? 'Delete study?' : confirmAction === 'activate' ? 'Activate study?' : 'Deactivate study?'}</Text>
+            <Text style={styles.text}>{confirmAction === 'delete' ? 'This will permanently remove the study, participant updates, and chat history.' : confirmAction === 'activate' ? 'Participants will be able to apply to this study.' : 'Participants will not be able to apply while this study is inactive.'}</Text>
+            <View style={styles.actions}><Button title="Cancel" variant="secondary" onPress={() => setConfirmAction(null)} /><Button title={confirmAction === 'delete' ? 'Delete' : confirmAction === 'activate' ? 'Activate' : 'Deactivate'} onPress={() => { if (!confirmAction) return; if (confirmAction === 'delete') { deleteStudy(study.id); setConfirmAction(null); router.replace('/(researcher)'); return; } setStudyActive(study.id, confirmAction === 'activate'); setConfirmAction(null); setMenuOpen(false); }} /></View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -111,13 +129,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.lg, gap: theme.spacing.md, paddingBottom: theme.spacing.xxl },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  backLink: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backText: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
+  backPill: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginLeft: theme.spacing.md },
+  backArrow: { color: theme.colors.primaryDark, fontWeight: '900', fontSize: theme.typography.h3 },
+  backText: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.h3 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing.md },
   heading: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   title: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   text: { color: theme.colors.textSecondary, lineHeight: 20 },
   securityText: { color: theme.colors.primaryDark, lineHeight: 20, fontWeight: '700' },
   tabs: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
   chatButton: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, alignSelf: 'flex-start', backgroundColor: '#EAF9F2', borderRadius: theme.radius.md, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm },
-  chatText: { color: theme.colors.primaryDark, fontWeight: '800' }
+  chatText: { color: theme.colors.primaryDark, fontWeight: '800' },
+  menuItem: { color: theme.colors.textPrimary, fontWeight: '800', paddingVertical: theme.spacing.xs },
+  deleteText: { color: '#B91C1C' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'center', padding: theme.spacing.lg },
+  modalCard: { backgroundColor: '#fff', borderRadius: theme.radius.lg, padding: theme.spacing.lg, gap: theme.spacing.md },
+  modalTitle: { color: theme.colors.textPrimary, fontSize: theme.typography.h3, fontWeight: '800' },
+  actions: { flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.sm }
 });

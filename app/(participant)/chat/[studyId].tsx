@@ -84,7 +84,7 @@ export default function StudyChatScreen() {
       headerTitle: '',
       headerLeft: () => (
         <Pressable onPress={returnToMyStudies} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back to My Studies">
-          <View style={styles.backPill}><Text style={styles.backLink}>← {study?.title ?? 'Study chat'}</Text></View>
+          <View style={styles.backPill}><Text style={styles.backArrow}>←</Text><Text style={styles.backLink}>{study?.title ?? 'Study chat'}</Text></View>
         </Pressable>
       )
     });
@@ -124,7 +124,6 @@ export default function StudyChatScreen() {
     <SafeAreaView style={styles.safeArea} edges={['left', 'right']}>
       <View ref={rootRef} onLayout={measureRoot} style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.studyTitle}>{study ? study.title : 'Study chat'}</Text>
           <View style={styles.researcherRow}>
             <Avatar name={researcherName} size={46} />
             <Text style={styles.researcherName}>{researcherName}</Text>
@@ -188,9 +187,9 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { gap: theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg },
-  backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
-  backPill: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  studyTitle: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
+  backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.h3 },
+  backArrow: { color: theme.colors.primaryDark, fontWeight: '900', fontSize: theme.typography.h3 },
+  backPill: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginLeft: theme.spacing.md },
   researcherRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   researcherName: { color: theme.colors.textSecondary, fontWeight: '600' },
   list: { flex: 1 },
