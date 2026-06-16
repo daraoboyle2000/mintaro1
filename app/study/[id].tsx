@@ -41,7 +41,7 @@ export default function StudyDetailsScreen() {
           ))}
         </View>
       </Card>
-      <Button title="Apply to this study" onPress={() => applyToStudy(study)} />
+      <Button title="Check eligibility" onPress={() => applyToStudy(study)} />
     </ScrollView>
   );
 }

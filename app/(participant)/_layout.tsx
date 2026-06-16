@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,6 +16,7 @@ export default function ParticipantLayout() {
   return (
     <Tabs
       screenOptions={{
+        headerTitle: '',
         headerStyle: { backgroundColor: theme.colors.background },
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
@@ -51,8 +53,8 @@ export default function ParticipantLayout() {
           tabBarIcon: ({ color }) => <ProfileIcon size={iconSize} color={color} />
         }}
       />
-      <Tabs.Screen name="chat/[studyId]" options={{ href: null }} />
-      <Tabs.Screen name="study/[id]" options={{ href: null }} />
+      <Tabs.Screen name="chat/[studyId]" options={{ href: null, title: 'My Studies', headerTitle: '', headerLeft: () => <Ionicons name="library" size={22} color={theme.colors.primaryDark} /> }} />
+      <Tabs.Screen name="study/[id]" options={{ href: null, title: 'My Studies', headerTitle: '', headerLeft: () => <Ionicons name="library" size={22} color={theme.colors.primaryDark} /> }} />
     </Tabs>
   );
 }

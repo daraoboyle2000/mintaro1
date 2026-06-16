@@ -1,5 +1,5 @@
-import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback } from 'react';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useCallback, useLayoutEffect } from 'react';
 import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
@@ -11,11 +11,21 @@ import { theme } from '@/theme';
 
 export default function StudyDetailsScreen() {
   const { id, from } = useLocalSearchParams<{ id: string; from?: string }>();
+  const navigation = useNavigation();
   const { applications, applyToStudy, studies } = useRole();
   const study = studies.find((entry) => entry.id === id);
   const application = applications.find((entry) => entry.studyId === id && entry.status !== 'Rejected');
   const openedFromMyStudies = from === 'my-studies';
   const isAlreadyApplied = Boolean(application);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerTitle: '',
+      headerLeft: () => (
+        <Text onPress={() => router.replace(openedFromMyStudies ? '/(participant)/applications' : '/(participant)')} style={styles.backLink}>📚 My Studies</Text>
+      )
+    });
+  }, [navigation, openedFromMyStudies]);
 
   useFocusEffect(
     useCallback(() => {
@@ -65,11 +75,11 @@ export default function StudyDetailsScreen() {
       </Card>
       {isAlreadyApplied ? (
         <View style={styles.appliedState}>
-          <Text style={styles.appliedTitle}>Application submitted</Text>
-          <Text style={styles.appliedText}>You can track this study and message the researcher from My Studies.</Text>
+          <Text style={styles.appliedTitle}>Eligibility confirmed</Text>
+          <Text style={styles.appliedText}>Mintaro screened your eligibility automatically. Researchers only see minimum necessary information until you are booked.</Text>
         </View>
       ) : (
-        <Button title="Apply to this study" onPress={() => applyToStudy(study)} />
+        <Button title="Check eligibility" onPress={() => applyToStudy(study)} />
       )}
     </ScrollView>
   );
@@ -91,6 +101,7 @@ const styles = StyleSheet.create({
     borderColor: '#D3F3E4',
     gap: theme.spacing.xs
   },
+  backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
   appliedTitle: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
   appliedText: { color: theme.colors.textSecondary, lineHeight: 20 }
 });

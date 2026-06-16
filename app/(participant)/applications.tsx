@@ -11,11 +11,11 @@ import { useRole } from '@/context/RoleContext';
 import { ApplicationStatus } from '@/types';
 import { theme } from '@/theme';
 
-type MyStudyTab = 'Applied' | 'Accepted' | 'Previous';
+type MyStudyTab = 'Accepted' | 'Booked' | 'Previous';
 
 export default function ApplicationsScreen() {
   const { applications, markMyStudiesRead, studies } = useRole();
-  const [tab, setTab] = useState<MyStudyTab>('Applied');
+  const [tab, setTab] = useState<MyStudyTab>('Accepted');
 
   useFocusEffect(
     useCallback(() => {
@@ -24,11 +24,11 @@ export default function ApplicationsScreen() {
   );
 
   const filtered = applications.filter((entry) => {
-    if (tab === 'Applied') {
-      return entry.status === 'Applied';
-    }
     if (tab === 'Accepted') {
       return entry.status === 'Accepted';
+    }
+    if (tab === 'Booked') {
+      return entry.status === 'Booked';
     }
     return entry.status === 'Completed' || entry.status === 'Rejected';
   });
@@ -42,9 +42,9 @@ export default function ApplicationsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionHeader title="My Studies" subtitle="Track applies, accepted, and previous studies" />
+      <SectionHeader title="My Studies" subtitle="Track eligible matches, booked sessions, and previous studies" />
       <View style={styles.tabs}>
-        {(['Applied', 'Accepted', 'Previous'] as const).map((entry) => (
+        {(['Accepted', 'Booked', 'Previous'] as const).map((entry) => (
           <FilterChip key={entry} label={entry} active={tab === entry} onPress={() => setTab(entry)} />
         ))}
       </View>
