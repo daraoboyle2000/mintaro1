@@ -115,7 +115,9 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   };
 
   const setStudyActive = (studyId: string, isActive: boolean) => {
-    setStudies((current) => current.map((study) => (study.id === studyId ? { ...study, isActive } : study)));
+    setStudies((current) =>
+      current.map((study) => (study.id === studyId && study.isPublished !== false ? { ...study, isActive } : study))
+    );
   };
 
   const deleteStudy = (studyId: string) => {
