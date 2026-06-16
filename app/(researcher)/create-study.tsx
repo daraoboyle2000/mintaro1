@@ -26,13 +26,13 @@ function modeFromLocationKind(locationKind: LocationKind): Study['mode'] {
   return 'In person';
 }
 
-const ageRanges = ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'];
+const ageOptions = Array.from({ length: 83 }, (_, index) => index + 18);
 const sexOptions = ['Any', 'Female', 'Male', 'Intersex'];
 const genderOptions = ['Any', 'Woman', 'Man', 'Non-binary', 'Prefer to self-describe'];
 const raceEthnicityOptions = ['Any', 'Asian', 'Black or African descent', 'Hispanic / Latine', 'Indigenous', 'Middle Eastern or North African', 'White', 'Multiple backgrounds'];
-const generalHealthOptions = ['Excellent', 'Very good', 'Good', 'Fair', 'Poor', 'Chronic condition', 'No MRI contraindications', 'No mobility restrictions'];
+const healthStatusOptions = ['Excellent', 'Very good', 'Good', 'Fair', 'Poor', 'Chronic condition', 'No MRI contraindications', 'No mobility restrictions', 'No implanted medical device', 'Pregnant or planning pregnancy', 'Currently taking prescription medication', 'Recent surgery', 'Vision impairment', 'Hearing impairment'];
 const smokingOptions = ['Any', 'Never smoker', 'Former smoker', 'Current smoker', 'Vape / nicotine use'];
-const answerKinds: EligibilityAnswerKind[] = ['range', 'yesNo', 'multipleChoice', 'locationRadius'];
+const answerKinds: EligibilityAnswerKind[] = ['yesNo', 'multipleChoice', 'range', 'locationRadius'];
 
 function buildEligibilitySummary(criteria: EligibilityCriterion[]) {
   if (criteria.length === 0) {
@@ -52,21 +52,27 @@ export default function CreateStudyScreen() {
   const [durationMins, setDurationMins] = useState('45');
   const [locationKind, setLocationKind] = useState<LocationKind>('Online');
   const [location, setLocation] = useState('');
+  const [ageMin, setAgeMin] = useState(18);
+  const [ageMax, setAgeMax] = useState(65);
   const [eligibilityValues, setEligibilityValues] = useState<Record<StudyFieldRequirement, string>>({} as Record<StudyFieldRequirement, string>);
   const [healthStatusMatters, setHealthStatusMatters] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
   const [customAnswerKind, setCustomAnswerKind] = useState<EligibilityAnswerKind>('yesNo');
-  const [customEligibleAnswer, setCustomEligibleAnswer] = useState('');
-  const [customRequiredInfo, setCustomRequiredInfo] = useState('');
+  const [customEligibleAnswer, setCustomEligibleAnswer] = useState('yes');
+  const [customRangeMin, setCustomRangeMin] = useState('');
+  const [customRangeMax, setCustomRangeMax] = useState('');
+  const [customRadius, setCustomRadius] = useState('');
+  const [customChoiceDraft, setCustomChoiceDraft] = useState('');
+  const [customChoices, setCustomChoices] = useState<string[]>([]);
   const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>([]);
   const [requiredInfoFields, setRequiredInfoFields] = useState<StudyFieldRequirement[]>(['ageRange']);
 
   const eligibilityCriteria = useMemo(
     () =>
       eligibilityFields
-        .map((field) => ({ field: field.field, label: field.label, value: eligibilityValues[field.field]?.trim() ?? '', answerKind: field.field === 'ageRange' ? 'range' as const : field.field === 'distancePreference' ? 'locationRadius' as const : 'multipleChoice' as const, locked: true, minimumNecessaryOnly: true }))
+        .map((field) => ({ field: field.field, label: field.label, value: field.field === 'ageRange' ? `${ageMin}-${ageMax}` : eligibilityValues[field.field]?.trim() ?? '', answerKind: field.field === 'ageRange' ? 'range' as const : field.field === 'distancePreference' ? 'locationRadius' as const : 'multipleChoice' as const, locked: true, minimumNecessaryOnly: true }))
         .filter((entry) => Boolean(entry.value)) as EligibilityCriterion[],
-    [eligibilityValues]
+    [ageMax, ageMin, eligibilityValues]
   );
 
   const rewardText =
@@ -83,7 +89,8 @@ export default function CreateStudyScreen() {
       durationMins.trim() &&
       (rewardKind === 'None' || (rewardKind === 'Other' ? rewardOther.trim() : rewardAmount.trim())) &&
       (!needsLocationDetails || location.trim()) &&
-      requiredInfoFields.length > 0
+      requiredInfoFields.length > 0 &&
+      ageMin <= ageMax
   );
 
   const toggleRequiredInfo = (field: StudyFieldRequirement) => {
@@ -121,7 +128,8 @@ export default function CreateStudyScreen() {
       requiredProfileFields: requiredInfoFields,
       customScreeningQuestions: customQuestions,
       criteriaLocked: true,
-      privacyStage: 'anonymous-eligible'
+      privacyStage: 'anonymous-eligible',
+      isActive: true
     };
 
     createStudy(study);
@@ -181,16 +189,25 @@ export default function CreateStudyScreen() {
       <Card>
         <Text style={styles.sectionTitle}>Locked eligibility criteria</Text>
         <Text style={styles.note}>Use typed selections and ranges. Criteria lock on publish so rejections must map to pre-existing rules.</Text>
-        <Text style={styles.label}>Age range</Text>
-        <View style={styles.chips}>{ageRanges.map((option) => <FilterChip key={option} label={option} active={(eligibilityValues.ageRange ?? '').includes(option)} onPress={() => setEligibilityValues((current) => ({ ...current, ageRange: current.ageRange === option ? '' : option }))} />)}</View>
+        <Text style={styles.label}>Age range: {ageMin}–{ageMax}</Text>
+        <View style={styles.rangeSelector}>
+          <View style={styles.ageControl}>
+            <Text style={styles.note}>Minimum</Text>
+            <View style={styles.chips}>{ageOptions.filter((age) => age % 5 === 0 || age === 18).map((age) => <FilterChip key={`min-${age}`} label={`${age}`} active={ageMin === age} onPress={() => setAgeMin(Math.min(age, ageMax))} />)}</View>
+          </View>
+          <View style={styles.ageControl}>
+            <Text style={styles.note}>Maximum</Text>
+            <View style={styles.chips}>{ageOptions.filter((age) => age % 5 === 0 || age === 100).map((age) => <FilterChip key={`max-${age}`} label={`${age}`} active={ageMax === age} onPress={() => setAgeMax(Math.max(age, ageMin))} />)}</View>
+          </View>
+        </View>
         <Text style={styles.label}>Sex</Text>
         <View style={styles.chips}>{sexOptions.map((option) => <FilterChip key={option} label={option} active={eligibilityValues.sex === option} onPress={() => setEligibilityValues((current) => ({ ...current, sex: option }))} />)}</View>
         <Text style={styles.label}>Gender</Text>
         <View style={styles.chips}>{genderOptions.map((option) => <FilterChip key={option} label={option} active={eligibilityValues.gender === option} onPress={() => setEligibilityValues((current) => ({ ...current, gender: option }))} />)}</View>
         <Text style={styles.label}>Race / ethnicity</Text>
         <View style={styles.chips}>{raceEthnicityOptions.map((option) => <FilterChip key={option} label={option} active={eligibilityValues.raceEthnicity === option} onPress={() => setEligibilityValues((current) => ({ ...current, raceEthnicity: option }))} />)}</View>
-        <Pressable onPress={() => setHealthStatusMatters((current) => !current)} style={styles.requiredRow}><View style={[styles.checkbox, healthStatusMatters && styles.checkboxChecked]}>{healthStatusMatters ? <Text style={styles.checkboxTick}>✓</Text> : null}</View><Text style={styles.label}>General health status matters</Text></Pressable>
-        {healthStatusMatters ? <><View style={styles.chips}>{generalHealthOptions.map((option) => <FilterChip key={option} label={option} active={(eligibilityValues.healthStatus ?? '').split(', ').includes(option)} onPress={() => setEligibilityValues((current) => { const selected = (current.healthStatus ?? '').split(', ').filter(Boolean); const next = selected.includes(option) ? selected.filter((entry) => entry !== option) : [...selected, option]; return { ...current, healthStatus: next.join(', ') }; })} />)}</View><Text style={styles.label}>Smoking / nicotine</Text><View style={styles.chips}>{smokingOptions.map((option) => <FilterChip key={option} label={option} active={eligibilityValues.smokingStatus === option} onPress={() => setEligibilityValues((current) => ({ ...current, smokingStatus: option }))} />)}</View><TextInput value={eligibilityValues.medicalHistory ?? ''} onChangeText={(value) => setEligibilityValues((current) => ({ ...current, medicalHistory: value }))} placeholder="Specific medical history rule" style={styles.input} /></> : null}
+        <Pressable onPress={() => setHealthStatusMatters((current) => !current)} style={styles.requiredRow}><View style={[styles.checkbox, healthStatusMatters && styles.checkboxChecked]}>{healthStatusMatters ? <Text style={styles.checkboxTick}>✓</Text> : null}</View><Text style={styles.label}>Health status {healthStatusMatters ? '⌃' : '⌄'}</Text></Pressable>
+        {healthStatusMatters ? <><View style={styles.chips}>{healthStatusOptions.map((option) => <FilterChip key={option} label={option} active={(eligibilityValues.healthStatus ?? '').split(', ').includes(option)} onPress={() => setEligibilityValues((current) => { const selected = (current.healthStatus ?? '').split(', ').filter(Boolean); const next = selected.includes(option) ? selected.filter((entry) => entry !== option) : [...selected, option]; return { ...current, healthStatus: next.join(', ') }; })} />)}</View><Text style={styles.label}>Smoking / nicotine</Text><View style={styles.chips}>{smokingOptions.map((option) => <FilterChip key={option} label={option} active={eligibilityValues.smokingStatus === option} onPress={() => setEligibilityValues((current) => ({ ...current, smokingStatus: option }))} />)}</View><TextInput value={eligibilityValues.medicalHistory ?? ''} onChangeText={(value) => setEligibilityValues((current) => ({ ...current, medicalHistory: value }))} placeholder="Specific medical history rule" style={styles.input} /></> : null}
         <TextInput value={eligibilityValues.distancePreference ?? ''} onChangeText={(value) => setEligibilityValues((current) => ({ ...current, distancePreference: value }))} placeholder="Location radius, e.g. within 25 km of Toronto" style={styles.input} />
       </Card>
 
@@ -199,9 +216,11 @@ export default function CreateStudyScreen() {
         <Text style={styles.note}>Mintaro evaluates answers internally and initially reveals only eligibility, not raw answers.</Text>
         <TextInput value={customQuestion} onChangeText={setCustomQuestion} placeholder="Question shown to participants" style={styles.input} />
         <View style={styles.chips}>{answerKinds.map((kind) => <FilterChip key={kind} label={kind} active={customAnswerKind === kind} onPress={() => setCustomAnswerKind(kind)} />)}</View>
-        <TextInput value={customEligibleAnswer} onChangeText={setCustomEligibleAnswer} placeholder="Eligible answer / range / options / radius" style={styles.input} />
-        <TextInput value={customRequiredInfo} onChangeText={setCustomRequiredInfo} placeholder="Required info category" style={styles.input} />
-        <Button title="Add screening question" variant="secondary" onPress={() => { if (!customQuestion.trim()) return; setCustomQuestions((current) => [...current, { id: `cq-${Date.now()}`, question: customQuestion.trim(), answerKind: customAnswerKind, eligibleAnswer: customEligibleAnswer.trim(), requiredInfo: customRequiredInfo.trim() }]); setCustomQuestion(''); setCustomEligibleAnswer(''); setCustomRequiredInfo(''); }} />
+        {customAnswerKind === 'yesNo' ? <View style={styles.chips}><FilterChip label="Yes" active={customEligibleAnswer === 'yes'} onPress={() => setCustomEligibleAnswer('yes')} /><FilterChip label="No" active={customEligibleAnswer === 'no'} onPress={() => setCustomEligibleAnswer('no')} /></View> : null}
+        {customAnswerKind === 'range' ? <View style={styles.inlineInputs}><TextInput value={customRangeMin} onChangeText={setCustomRangeMin} keyboardType="numeric" placeholder="Eligible min" style={[styles.input, styles.flexInput]} /><TextInput value={customRangeMax} onChangeText={setCustomRangeMax} keyboardType="numeric" placeholder="Eligible max" style={[styles.input, styles.flexInput]} /></View> : null}
+        {customAnswerKind === 'locationRadius' ? <TextInput value={customRadius} onChangeText={setCustomRadius} keyboardType="numeric" placeholder="Eligible radius in km" style={styles.input} /> : null}
+        {customAnswerKind === 'multipleChoice' ? <><View style={styles.inlineInputs}><TextInput value={customChoiceDraft} onChangeText={setCustomChoiceDraft} placeholder="Add answer choice" style={[styles.input, styles.flexInput]} /><Button title="Add" variant="secondary" onPress={() => { const choice = customChoiceDraft.trim(); if (!choice) return; setCustomChoices((current) => current.includes(choice) ? current : [...current, choice]); setCustomChoiceDraft(''); }} /></View><View style={styles.chips}>{customChoices.map((choice) => <FilterChip key={choice} label={choice} active={customEligibleAnswer === choice} onPress={() => setCustomEligibleAnswer(choice)} />)}</View></> : null}
+        <Button title="Add screening question" variant="secondary" onPress={() => { if (!customQuestion.trim()) return; const eligibleAnswer = customAnswerKind === 'yesNo' ? customEligibleAnswer === 'yes' : customAnswerKind === 'range' ? { min: parseNumber(customRangeMin), max: parseNumber(customRangeMax) } : customAnswerKind === 'locationRadius' ? { radius: parseNumber(customRadius) } : customEligibleAnswer ? [customEligibleAnswer] : customChoices; setCustomQuestions((current) => [...current, { id: `cq-${Date.now()}`, question: customQuestion.trim(), answerKind: customAnswerKind, eligibleAnswer }]); setCustomQuestion(''); setCustomEligibleAnswer('yes'); setCustomRangeMin(''); setCustomRangeMax(''); setCustomRadius(''); setCustomChoices([]); }} />
         {customQuestions.map((question) => <Text key={question.id} style={styles.note}>• {question.question} ({question.answerKind}) — eligibility held internally</Text>)}
       </Card>
 
@@ -254,5 +273,9 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary },
   checkboxTick: { color: '#fff', fontWeight: '800', lineHeight: 18 },
-  note: { color: theme.colors.textSecondary, lineHeight: 20 }
+  note: { color: theme.colors.textSecondary, lineHeight: 20 },
+  rangeSelector: { gap: theme.spacing.md },
+  ageControl: { gap: theme.spacing.xs },
+  inlineInputs: { flexDirection: 'row', gap: theme.spacing.sm, alignItems: 'center' },
+  flexInput: { flex: 1 }
 });

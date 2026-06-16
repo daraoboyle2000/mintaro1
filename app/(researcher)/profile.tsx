@@ -55,6 +55,8 @@ export default function ResearcherProfileScreen() {
   const avatarPanResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => Boolean(draftAvatar),
     onMoveShouldSetPanResponder: () => Boolean(draftAvatar),
+    onStartShouldSetPanResponderCapture: () => Boolean(draftAvatar),
+    onMoveShouldSetPanResponderCapture: () => Boolean(draftAvatar),
     onPanResponderGrant: (event) => captureAvatarGestureStart(event.nativeEvent.touches),
     onPanResponderMove: (event) => {
       const touches = event.nativeEvent.touches;
@@ -74,7 +76,9 @@ export default function ResearcherProfileScreen() {
         return next;
       });
     },
-    onPanResponderRelease: () => { activeTouchCount.current = 0; }
+    onPanResponderTerminationRequest: () => false,
+    onPanResponderRelease: () => { activeTouchCount.current = 0; },
+    onPanResponderTerminate: () => { activeTouchCount.current = 0; }
   });
 
   const openGallery = async () => {

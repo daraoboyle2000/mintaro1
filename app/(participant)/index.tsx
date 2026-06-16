@@ -162,7 +162,7 @@ function isRangeMatch(value: number, range: RangeFilter) {
 }
 
 function isPublishedStudy(study: BrowseStudy) {
-  if (study.published === false || study.isPublished === false) {
+  if (study.published === false || study.isPublished === false || study.original.isActive === false) {
     return false;
   }
   if (study.status && !['published', 'active', 'open'].includes(study.status.toLowerCase())) {
@@ -308,7 +308,7 @@ function AnimatedStudyCard({ study, phase, onApply, onFinished }: StudyCardProps
 }
 
 export default function ParticipantBrowseScreen() {
-  const { profile, studies: availableStudies, applyToStudy, missingFieldsForStudy, setProfile, devModePreset, setRole, isResearcherSetupComplete } = useRole();
+  const { profile, studies: availableStudies, applyToStudy, missingFieldsForStudy, setProfile, devModePreset } = useRole();
   const [search, setSearch] = useState('');
   const [openFilter, setOpenFilter] = useState<FilterPanel | null>(null);
   const [filters, setFilters] = useState<BrowseFilters>(defaultFilters);
@@ -462,14 +462,6 @@ export default function ParticipantBrowseScreen() {
           <SectionHeader title={`Hi ${headerName} 👋`} subtitle="Browse studies matched to your profile" />
         </View>
 
-        <Button
-          title="Switch to researcher"
-          variant="secondary"
-          onPress={() => {
-            setRole('researcher');
-            router.replace(isResearcherSetupComplete ? '/(researcher)' : '/(auth)/setup');
-          }}
-        />
 
         <TextInput value={search} onChangeText={setSearch} placeholder="Search studies" style={styles.search} />
         <View style={styles.filterButtons}>
