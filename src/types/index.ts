@@ -71,13 +71,14 @@ export type Study = {
   criteriaLocked?: boolean;
   privacyStage?: 'anonymous-eligible' | 'booked-info-release';
   isActive?: boolean;
+  isPublished?: boolean;
 };
 
 export type Applicant = {
   id: string;
   name: string;
   age: number;
-  status: 'Eligible' | 'Booked' | 'Rejected';
+  status: 'Applied' | 'Eligible' | 'Booked' | 'Rejected';
   studyId: string;
   summary: string;
   isNew?: boolean;

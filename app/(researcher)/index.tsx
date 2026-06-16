@@ -20,7 +20,7 @@ export default function ResearcherMyStudiesScreen() {
       ) : (
         studies.map((study) => {
           const applicants = allApplicants.filter((entry) => entry.studyId === study.id);
-          const eligible = applicants.filter((entry) => entry.status === 'Eligible').length;
+          const applied = applicants.filter((entry) => entry.status === 'Applied' || entry.status === 'Eligible').length;
           const booked = applicants.filter((entry) => entry.status === 'Booked').length;
           const rejected = applicants.filter((entry) => entry.status === 'Rejected').length;
           const unread = applicants.reduce((sum, entry) => sum + (entry.unreadUpdates ?? (entry.isNew ? 1 : 0)), 0);
@@ -35,7 +35,7 @@ export default function ResearcherMyStudiesScreen() {
                 <Text style={styles.title}>{study.title}</Text>
                 <Text style={styles.text}>{study.reward} • {study.duration}</Text>
                 <View style={styles.statsRow}>
-                  <Badge label={`${eligible} eligible`} />
+                  <Badge label={`${applied} applied`} />
                   <Badge label={`${booked} booked`} />
                   <Badge label={`${rejected} rejected`} />
                 </View>

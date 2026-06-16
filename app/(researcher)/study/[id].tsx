@@ -8,13 +8,12 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterChip } from '@/components/ui/FilterChip';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
 import { Applicant } from '@/types';
 import { theme } from '@/theme';
 
-type ApplicantTab = 'Eligible' | 'Booked' | 'Rejected';
-const applicantTabs: ApplicantTab[] = ['Eligible', 'Booked', 'Rejected'];
+type ApplicantTab = 'Applied' | 'Booked' | 'Rejected';
+const applicantTabs: ApplicantTab[] = ['Applied', 'Booked', 'Rejected'];
 
 function returnToMyStudies() {
   router.replace('/(researcher)');
@@ -28,7 +27,7 @@ export default function ResearcherStudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
   const { applicants: allApplicants, deleteStudy, markResearcherStudyRead, setStudyActive, studies } = useRole();
-  const [activeTab, setActiveTab] = useState<ApplicantTab>('Eligible');
+  const [activeTab, setActiveTab] = useState<ApplicantTab>('Applied');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState<'activate' | 'deactivate' | 'delete' | null>(null);
@@ -53,6 +52,7 @@ export default function ResearcherStudyDetailsScreen() {
 
   const applicants = useMemo(() => allApplicants.filter((entry) => entry.studyId === id), [allApplicants, id]);
   const tabApplicants = applicants.filter((entry) => entry.status === activeTab);
+  const isPublished = study?.isPublished !== false;
 
   if (!study) {
     return <EmptyState title="Study not found" subtitle="This study may have been deleted." />;
@@ -60,13 +60,15 @@ export default function ResearcherStudyDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.titleRow}><SectionHeader title={study.title} /><Pressable onPress={() => setMenuOpen((current) => !current)} hitSlop={12} accessibilityRole="button" accessibilityLabel={`Study settings for ${study.title}`}><Ionicons name="ellipsis-horizontal" size={26} color={theme.colors.primaryDark} /></Pressable></View>
-      {menuOpen ? (
-        <Card>
-          <Pressable onPress={() => setConfirmAction(study.isActive === false ? 'activate' : 'deactivate')}><Text style={styles.menuItem}>{study.isActive === false ? 'Activate study' : 'Deactivate study'}</Text></Pressable>
-          <Pressable onPress={() => setConfirmAction('delete')}><Text style={[styles.menuItem, styles.deleteText]}>Delete study</Text></Pressable>
-        </Card>
-      ) : null}
+      <View style={styles.titleRow}><Text style={styles.heading}>Study overview</Text><Pressable onPress={() => setMenuOpen(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={`Study settings for ${study.title}`}><Ionicons name="ellipsis-horizontal" size={26} color={theme.colors.primaryDark} /></Pressable></View>
+      <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setMenuOpen(false)}>
+          <View style={styles.popoverMenu}>
+            <Pressable onPress={() => { setMenuOpen(false); setConfirmAction(study.isActive === false ? 'activate' : 'deactivate'); }}><Text style={styles.menuItem}>{study.isActive === false ? 'Activate study' : 'Deactivate study'}</Text></Pressable>
+            <Pressable onPress={() => { setMenuOpen(false); setConfirmAction('delete'); }}><Text style={[styles.menuItem, styles.deleteText]}>Delete study</Text></Pressable>
+          </View>
+        </Pressable>
+      </Modal>
       <Card>
         <Pressable onPress={() => setDetailsOpen((current) => !current)} style={styles.rowBetween} accessibilityRole="button">
           <Text style={styles.heading}>Study details</Text>
@@ -82,12 +84,14 @@ export default function ResearcherStudyDetailsScreen() {
         ) : null}
       </Card>
 
-      <View style={styles.tabs}>{applicantTabs.map((tab) => <FilterChip key={tab} label={tab} active={activeTab === tab} onPress={() => setActiveTab(tab)} />)}</View>
-      {tabApplicants.length === 0 ? (
-        <EmptyState title={`No ${activeTab.toLowerCase()} participants`} subtitle="Automated screening results will appear here without exposing raw answers." />
+      {isPublished ? <View style={styles.tabs}>{applicantTabs.map((tab) => <FilterChip key={tab} label={tab} active={activeTab === tab} onPress={() => setActiveTab(tab)} />)}</View> : null}
+      {!isPublished ? (
+        <Card><Text style={styles.text}>This study is saved but not published yet.</Text><Button title="Continue editing" onPress={() => router.push({ pathname: '/(researcher)/create-study', params: { id: study.id } })} /></Card>
+      ) : tabApplicants.length === 0 ? (
+        <EmptyState title={`No ${activeTab.toLowerCase()} participants`} subtitle="Mock and live screening results appear here without exposing raw answers." />
       ) : (
         tabApplicants.map((applicant, index) => {
-          const canMessage = applicant.status === 'Booked' || applicant.status === 'Eligible';
+          const canMessage = applicant.status === 'Booked' || applicant.status === 'Applied' || applicant.status === 'Eligible';
           return (
             <Card key={applicant.id}>
               <View style={styles.rowBetween}>
@@ -133,6 +137,8 @@ const styles = StyleSheet.create({
   backArrow: { color: theme.colors.primaryDark, fontWeight: '900', fontSize: theme.typography.h3 },
   backText: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.h3 },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing.md },
+  menuBackdrop: { flex: 1, alignItems: 'flex-end', paddingTop: 92, paddingRight: theme.spacing.lg },
+  popoverMenu: { backgroundColor: '#fff', borderRadius: theme.radius.md, padding: theme.spacing.sm, minWidth: 190, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, elevation: 6 },
   heading: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   title: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   text: { color: theme.colors.textSecondary, lineHeight: 20 },
