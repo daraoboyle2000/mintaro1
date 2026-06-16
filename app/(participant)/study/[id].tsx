@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useLayoutEffect } from 'react';
-import { BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -22,10 +22,12 @@ export default function StudyDetailsScreen() {
     navigation.setOptions({
       headerTitle: '',
       headerLeft: () => (
-        <Text onPress={() => router.replace(openedFromMyStudies ? '/(participant)/applications' : '/(participant)')} style={styles.backLink}>📚 My Studies</Text>
+        <Pressable onPress={() => router.replace(openedFromMyStudies ? '/(participant)/applications' : '/(participant)')} hitSlop={10} style={styles.backPill} accessibilityRole="button">
+          <Text style={styles.backArrow}>←</Text><Text style={styles.backLink}>{openedFromMyStudies ? (study?.title ?? 'Study') : 'Browse studies'}</Text>
+        </Pressable>
       )
     });
-  }, [navigation, openedFromMyStudies]);
+  }, [navigation, openedFromMyStudies, study?.title]);
 
   useFocusEffect(
     useCallback(() => {
@@ -101,7 +103,9 @@ const styles = StyleSheet.create({
     borderColor: '#D3F3E4',
     gap: theme.spacing.xs
   },
-  backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
+  backPill: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, marginLeft: theme.spacing.md },
+  backArrow: { color: theme.colors.primaryDark, fontWeight: '900', fontSize: theme.typography.h3 },
+  backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.h3 },
   appliedTitle: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
   appliedText: { color: theme.colors.textSecondary, lineHeight: 20 }
 });

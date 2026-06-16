@@ -108,6 +108,36 @@ export const mockApplicants: Applicant[] = [
     summary: 'Limited in-person availability for planned time slots.',
     isNew: true,
     unreadUpdates: 1
+  },
+  {
+    id: 'a4',
+    name: 'Maya Chen',
+    age: 31,
+    status: 'Eligible',
+    studyId: 's2',
+    summary: 'Uses mobile banking weekly and is available for remote usability testing.',
+    isNew: true,
+    unreadUpdates: 1
+  },
+  {
+    id: 'a5',
+    name: 'Elliot Rivera',
+    age: 39,
+    status: 'Booked',
+    studyId: 's1',
+    summary: 'Exercises before work and has confirmed a session slot.',
+    isNew: false,
+    unreadUpdates: 0
+  },
+  {
+    id: 'a6',
+    name: 'Priya Shah',
+    age: 42,
+    status: 'Eligible',
+    studyId: 's3',
+    summary: 'Primary household grocery shopper with weekly in-store shopping habits.',
+    isNew: true,
+    unreadUpdates: 1
   }
 ];
 
