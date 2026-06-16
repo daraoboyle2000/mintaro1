@@ -24,7 +24,8 @@ export const mockStudies: Study[] = [
     requiredProfileFields: ['ageRange'],
     criteriaLocked: true,
     privacyStage: 'anonymous-eligible',
-    isActive: true
+    isActive: true,
+    isPublished: true
   },
   {
     id: 's2',
@@ -49,7 +50,8 @@ export const mockStudies: Study[] = [
     requiredProfileFields: ['ageRange', 'distancePreference'],
     criteriaLocked: true,
     privacyStage: 'booked-info-release',
-    isActive: true
+    isActive: true,
+    isPublished: true
   },
   {
     id: 's3',
@@ -74,7 +76,8 @@ export const mockStudies: Study[] = [
     requiredProfileFields: ['smoker'],
     criteriaLocked: true,
     privacyStage: 'anonymous-eligible',
-    isActive: false
+    isActive: false,
+    isPublished: true
   }
 ];
 
@@ -83,7 +86,7 @@ export const mockApplicants: Applicant[] = [
     id: 'a1',
     name: 'Jordan Blake',
     age: 28,
-    status: 'Eligible',
+    status: 'Applied',
     studyId: 's1',
     summary: 'Runs 3x weekly and has prior interview-study experience.',
     isNew: true,
@@ -113,7 +116,7 @@ export const mockApplicants: Applicant[] = [
     id: 'a4',
     name: 'Maya Chen',
     age: 31,
-    status: 'Eligible',
+    status: 'Applied',
     studyId: 's2',
     summary: 'Uses mobile banking weekly and is available for remote usability testing.',
     isNew: true,

@@ -1,11 +1,10 @@
-import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { FilterChip } from '@/components/ui/FilterChip';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { useRole } from '@/context/RoleContext';
 import { eligibilityFields, locationKinds, rewardKinds, studyThemes } from '@/data/studyOptions';
 import { theme } from '@/theme';
@@ -32,7 +31,37 @@ const raceEthnicityOptions = ['Any', 'Asian', 'Black or African descent', 'Hispa
 const healthStatusOptions = ['Excellent', 'Very good', 'Good', 'Fair', 'Poor', 'Chronic condition', 'No MRI contraindications', 'No mobility restrictions', 'No implanted medical device', 'Pregnant or planning pregnancy', 'Currently taking prescription medication', 'Recent surgery', 'Vision impairment', 'Hearing impairment'];
 const smokingOptions = ['Any', 'Never smoker', 'Former smoker', 'Current smoker', 'Vape / nicotine use'];
 const answerKinds: EligibilityAnswerKind[] = ['yesNo', 'multipleChoice', 'range', 'locationRadius'];
-const ageSliderValues = [18, 25, 35, 45, 55, 65, 75, 85, 100];
+const AGE_MIN = 18;
+const AGE_MAX = 100;
+const AGE_SPAN = AGE_MAX - AGE_MIN;
+
+
+function DualAgeSlider({ min, max, onChange }: { min: number; max: number; onChange: (next: { min: number; max: number }) => void }) {
+  const [width, setWidth] = useState(1);
+  const start = useRef({ min, max });
+  const valueFromDx = (startValue: number, dx: number) => Math.round(Math.min(AGE_MAX, Math.max(AGE_MIN, startValue + (dx / width) * AGE_SPAN)));
+  const minResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { start.current = { min, max }; },
+    onPanResponderMove: (_, gesture) => onChange({ min: Math.min(valueFromDx(start.current.min, gesture.dx), max), max })
+  })).current;
+  const maxResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => { start.current = { min, max }; },
+    onPanResponderMove: (_, gesture) => onChange({ min, max: Math.max(valueFromDx(start.current.max, gesture.dx), min) })
+  })).current;
+  const minPct = ((min - AGE_MIN) / AGE_SPAN) * 100;
+  const maxPct = ((max - AGE_MIN) / AGE_SPAN) * 100;
+  return (
+    <View style={styles.dualSlider} onLayout={(event) => setWidth(Math.max(event.nativeEvent.layout.width, 1))}>
+      <View style={styles.sliderTrack}><View style={[styles.sliderFill, { left: `${minPct}%`, right: `${100 - maxPct}%` }]} /></View>
+      <View {...minResponder.panHandlers} style={[styles.sliderThumb, { left: `${minPct}%` }]}><Text style={styles.thumbLabel}>{min}</Text></View>
+      <View {...maxResponder.panHandlers} style={[styles.sliderThumb, { left: `${maxPct}%` }]}><Text style={styles.thumbLabel}>{max}</Text></View>
+    </View>
+  );
+}
 
 function buildEligibilitySummary(criteria: EligibilityCriterion[]) {
   if (criteria.length === 0) {
@@ -42,18 +71,22 @@ function buildEligibilitySummary(criteria: EligibilityCriterion[]) {
 }
 
 export default function CreateStudyScreen() {
-  const { createStudy, researcherProfile } = useRole();
-  const [title, setTitle] = useState('');
-  const [summary, setSummary] = useState('');
-  const [themeChoice, setThemeChoice] = useState<StudyTheme>('Neuroscience');
-  const [rewardKind, setRewardKind] = useState<RewardKind>('Monetary');
-  const [rewardAmount, setRewardAmount] = useState('');
-  const [rewardOther, setRewardOther] = useState('');
-  const [durationMins, setDurationMins] = useState('45');
-  const [locationKind, setLocationKind] = useState<LocationKind>('Online');
-  const [location, setLocation] = useState('');
-  const [ageMin, setAgeMin] = useState(18);
-  const [ageMax, setAgeMax] = useState(65);
+  const navigation = useNavigation();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { createStudy, researcherProfile, studies, updateStudy } = useRole();
+  const editingStudy = studies.find((entry) => entry.id === id);
+  const scrollRef = useRef<ScrollView>(null);
+  const [title, setTitle] = useState(editingStudy?.title ?? '');
+  const [summary, setSummary] = useState(editingStudy?.shortDescription ?? '');
+  const [themeChoice, setThemeChoice] = useState<StudyTheme>(editingStudy?.theme ?? 'Neuroscience');
+  const [rewardKind, setRewardKind] = useState<RewardKind>(editingStudy?.rewardKind ?? 'Monetary');
+  const [rewardAmount, setRewardAmount] = useState(editingStudy?.rewardValue ? String(editingStudy.rewardValue) : '');
+  const [rewardOther, setRewardOther] = useState(editingStudy?.rewardKind === 'Other' ? editingStudy.reward : '');
+  const [durationMins, setDurationMins] = useState(editingStudy?.durationMins ? String(editingStudy.durationMins) : '45');
+  const [locationKind, setLocationKind] = useState<LocationKind>(editingStudy?.locationKind ?? 'Online');
+  const [location, setLocation] = useState(editingStudy?.locationKind === 'Online' ? '' : editingStudy?.location ?? '');
+  const [ageMin, setAgeMin] = useState(parseNumber(editingStudy?.eligibilityCriteria.find((criterion) => criterion.field === 'ageRange')?.value ?? '18') || 18);
+  const [ageMax, setAgeMax] = useState(parseNumber(editingStudy?.eligibilityCriteria.find((criterion) => criterion.field === 'ageRange')?.value.split('-')[1] ?? '65') || 65);
   const [eligibilityValues, setEligibilityValues] = useState<Record<StudyFieldRequirement, string>>({} as Record<StudyFieldRequirement, string>);
   const [healthStatusMatters, setHealthStatusMatters] = useState(false);
   const [customQuestion, setCustomQuestion] = useState('');
@@ -65,8 +98,14 @@ export default function CreateStudyScreen() {
   const [customChoiceDraft, setCustomChoiceDraft] = useState('');
   const [customChoices, setCustomChoices] = useState<string[]>([]);
   const [customQuestionError, setCustomQuestionError] = useState('');
-  const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>([]);
-  const [requiredInfoFields, setRequiredInfoFields] = useState<StudyFieldRequirement[]>(['ageRange']);
+  const [customQuestions, setCustomQuestions] = useState<CustomScreeningQuestion[]>(editingStudy?.customScreeningQuestions ?? []);
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const [highlightedField, setHighlightedField] = useState<string | null>(null);
+  const [requiredInfoFields, setRequiredInfoFields] = useState<StudyFieldRequirement[]>(editingStudy?.requiredInfoFields ?? ['ageRange']);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ headerTitle: 'Create a study', headerTitleAlign: 'center' });
+  }, [navigation]);
 
   const eligibilityCriteria = useMemo(
     () =>
@@ -100,20 +139,12 @@ export default function CreateStudyScreen() {
     );
   };
 
-  const publishStudy = () => {
-    if (customAnswerKind === 'multipleChoice' && customQuestion.trim() && !customChoices.includes(customEligibleAnswer)) {
-      setCustomQuestionError('Choose the correct eligible answer for this multiple choice question before publishing.');
-      return;
-    }
-    if (!canPublish) {
-      return;
-    }
-
+  const buildStudy = (isPublished: boolean): Study => {
     const cleanDurationMins = parseNumber(durationMins);
     const mode = modeFromLocationKind(locationKind);
-    const study: Study = {
-      id: `s-${Date.now()}`,
-      title: title.trim(),
+    return {
+      id: editingStudy?.id ?? `s-${Date.now()}`,
+      title: title.trim() || 'Untitled study',
       shortDescription: summary.trim(),
       details: summary.trim(),
       reward: rewardText,
@@ -132,22 +163,51 @@ export default function CreateStudyScreen() {
       researcherFirstName: researcherProfile.firstName ?? researcherProfile.institution ?? 'Researcher',
       requiredProfileFields: requiredInfoFields,
       customScreeningQuestions: customQuestions,
-      criteriaLocked: true,
+      criteriaLocked: isPublished,
       privacyStage: 'anonymous-eligible',
-      isActive: true
+      isActive: isPublished,
+      isPublished
     };
+  };
 
-    createStudy(study);
+  const saveStudy = (isPublished: boolean) => {
+    const study = buildStudy(isPublished);
+    if (editingStudy) updateStudy(study); else createStudy(study);
     router.replace('/(researcher)');
   };
 
+  const publishStudy = () => {
+    if (customAnswerKind === 'multipleChoice' && customQuestion.trim() && !customChoices.includes(customEligibleAnswer)) {
+      setCustomQuestionError('Choose the correct eligible answer for this multiple choice question before publishing.');
+      return;
+    }
+    if (!canPublish) {
+      const field = !title.trim() ? 'title' : !summary.trim() ? 'summary' : !durationMins.trim() ? 'duration' : rewardKind !== 'None' && !(rewardKind === 'Other' ? rewardOther.trim() : rewardAmount.trim()) ? 'reward' : needsLocationDetails && !location.trim() ? 'location' : 'requiredInfo';
+      setHighlightedField(field);
+      scrollRef.current?.scrollTo({ y: field === 'title' || field === 'summary' ? 0 : field === 'reward' ? 220 : field === 'duration' || field === 'location' ? 420 : 900, animated: true });
+      return;
+    }
+    saveStudy(true);
+  };
+
+  const saveCustomQuestion = () => {
+    if (!customQuestion.trim()) return;
+    if (customAnswerKind === 'multipleChoice' && !customChoices.includes(customEligibleAnswer)) {
+      setCustomQuestionError('Select the correct answer option.');
+      return;
+    }
+    const eligibleAnswer = customAnswerKind === 'yesNo' ? customEligibleAnswer === 'yes' : customAnswerKind === 'range' ? { min: parseNumber(customRangeMin), max: parseNumber(customRangeMax) } : customAnswerKind === 'locationRadius' ? { radius: parseNumber(customRadius) } : customEligibleAnswer ? [customEligibleAnswer] : customChoices;
+    const nextQuestion = { id: editingQuestionId ?? `cq-${Date.now()}`, question: customQuestion.trim(), answerKind: customAnswerKind, eligibleAnswer };
+    setCustomQuestions((current) => editingQuestionId ? current.map((entry) => entry.id === editingQuestionId ? nextQuestion : entry) : [...current, nextQuestion]);
+    setEditingQuestionId(null); setCustomQuestion(''); setCustomEligibleAnswer('yes'); setCustomRangeMin(''); setCustomRangeMax(''); setCustomRadius(''); setCustomChoices([]);
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <SectionHeader title="Create Study" subtitle="Use structured parameters so listings can be matched and filtered precisely." />
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Card>
         <View style={styles.fields}>
-          <TextInput value={title} onChangeText={setTitle} placeholder="Study title" style={styles.input} />
-          <TextInput value={summary} onChangeText={setSummary} placeholder="Short participant-facing summary" style={styles.input} multiline />
+          <TextInput value={title} onChangeText={(value) => { setTitle(value); setHighlightedField(null); }} placeholder="Study title" style={[styles.input, highlightedField === 'title' && styles.highlightedInput]} />
+          <TextInput value={summary} onChangeText={(value) => { setSummary(value); setHighlightedField(null); }} placeholder="Short participant-facing summary" style={[styles.input, highlightedField === 'summary' && styles.highlightedInput]} multiline />
         </View>
       </Card>
 
@@ -168,16 +228,16 @@ export default function CreateStudyScreen() {
           ))}
         </View>
         {rewardKind === 'Monetary' || rewardKind === 'Voucher / gift card' ? (
-          <TextInput value={rewardAmount} onChangeText={setRewardAmount} keyboardType="numeric" placeholder="Amount" style={styles.input} />
+          <TextInput value={rewardAmount} onChangeText={(value) => { setRewardAmount(value); setHighlightedField(null); }} keyboardType="numeric" placeholder="Amount" style={[styles.input, highlightedField === 'reward' && styles.highlightedInput]} />
         ) : null}
         {rewardKind === 'Other' ? (
-          <TextInput value={rewardOther} onChangeText={setRewardOther} placeholder="Describe the reward" style={styles.input} />
+          <TextInput value={rewardOther} onChangeText={(value) => { setRewardOther(value); setHighlightedField(null); }} placeholder="Describe the reward" style={[styles.input, highlightedField === 'reward' && styles.highlightedInput]} />
         ) : null}
       </Card>
 
       <Card>
         <Text style={styles.sectionTitle}>Duration and location</Text>
-        <TextInput value={durationMins} onChangeText={setDurationMins} keyboardType="numeric" placeholder="Duration in minutes" style={styles.input} />
+        <TextInput value={durationMins} onChangeText={(value) => { setDurationMins(value); setHighlightedField(null); }} keyboardType="numeric" placeholder="Duration in minutes" style={[styles.input, highlightedField === 'duration' && styles.highlightedInput]} />
         <View style={styles.chips}>
           {locationKinds.map((option) => (
             <FilterChip key={option} label={option} active={locationKind === option} onPress={() => setLocationKind(option)} />
@@ -185,20 +245,18 @@ export default function CreateStudyScreen() {
         </View>
         {needsLocationDetails ? (
           <>
-            <TextInput value={location} onChangeText={setLocation} placeholder="Location address or city" style={styles.input} />
+            <TextInput value={location} onChangeText={(value) => { setLocation(value); setHighlightedField(null); }} placeholder="Location address or city" style={[styles.input, highlightedField === 'location' && styles.highlightedInput]} />
             <Text style={styles.note}>Map picker placeholder: this field is ready for a future maps API integration.</Text>
           </>
         ) : null}
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>Locked eligibility criteria</Text>
-        <Text style={styles.note}>Use typed selections and ranges. Criteria lock on publish so rejections must map to pre-existing rules.</Text>
+        <Text style={styles.sectionTitle}>Eligibility criteria</Text>
+        <Text style={styles.note}>Use typed selections and tactile ranges. Criteria lock when the study is published.</Text>
         <View style={styles.criteriaBlock}>
           <Text style={styles.label}>Age range: {ageMin}–{ageMax}</Text>
-          <View style={styles.sliderTrack}><View style={[styles.sliderFill, { left: `${((ageMin - 18) / 82) * 100}%`, right: `${100 - ((ageMax - 18) / 82) * 100}%` }]} /></View>
-          <View style={styles.chips}>{ageSliderValues.map((age) => <FilterChip key={`min-${age}`} label={`Min ${age}`} active={ageMin === age} onPress={() => setAgeMin(Math.min(age, ageMax))} />)}</View>
-          <View style={styles.chips}>{ageSliderValues.map((age) => <FilterChip key={`max-${age}`} label={`Max ${age}`} active={ageMax === age} onPress={() => setAgeMax(Math.max(age, ageMin))} />)}</View>
+          <DualAgeSlider min={ageMin} max={ageMax} onChange={({ min, max }) => { setAgeMin(min); setAgeMax(max); }} />
         </View>
         <View style={styles.divider} />
         <View style={styles.criteriaBlock}>
@@ -229,11 +287,12 @@ export default function CreateStudyScreen() {
         {customAnswerKind === 'range' ? <View style={styles.inlineInputs}><TextInput value={customRangeMin} onChangeText={setCustomRangeMin} keyboardType="numeric" placeholder="Eligible min" style={[styles.input, styles.flexInput]} /><TextInput value={customRangeMax} onChangeText={setCustomRangeMax} keyboardType="numeric" placeholder="Eligible max" style={[styles.input, styles.flexInput]} /></View> : null}
         {customAnswerKind === 'locationRadius' ? <TextInput value={customRadius} onChangeText={setCustomRadius} keyboardType="numeric" placeholder="Eligible radius in km" style={styles.input} /> : null}
         {customAnswerKind === 'multipleChoice' ? <><View style={styles.inlineInputs}><TextInput value={customChoiceDraft} onChangeText={setCustomChoiceDraft} placeholder="Add answer choice" style={[styles.input, styles.flexInput]} /><Button title="Add" variant="secondary" onPress={() => { const choice = customChoiceDraft.trim(); if (!choice) return; setCustomQuestionError(''); setCustomChoices((current) => current.includes(choice) ? current : [...current, choice]); setCustomChoiceDraft(''); }} /></View><View style={styles.chips}>{customChoices.map((choice) => <FilterChip key={choice} label={choice} active={customEligibleAnswer === choice} onPress={() => { setCustomQuestionError(''); setCustomEligibleAnswer(choice); }} />)}</View>{customQuestionError ? <Text style={styles.errorText}>{customQuestionError}</Text> : null}</> : null}
-        <Button title="Add screening question" variant="secondary" onPress={() => { if (!customQuestion.trim()) return; if (customAnswerKind === 'multipleChoice' && !customChoices.includes(customEligibleAnswer)) { setCustomQuestionError('Select the correct answer option.'); return; } const eligibleAnswer = customAnswerKind === 'yesNo' ? customEligibleAnswer === 'yes' : customAnswerKind === 'range' ? { min: parseNumber(customRangeMin), max: parseNumber(customRangeMax) } : customAnswerKind === 'locationRadius' ? { radius: parseNumber(customRadius) } : customEligibleAnswer ? [customEligibleAnswer] : customChoices; setCustomQuestions((current) => [...current, { id: `cq-${Date.now()}`, question: customQuestion.trim(), answerKind: customAnswerKind, eligibleAnswer }]); setCustomQuestion(''); setCustomEligibleAnswer('yes'); setCustomRangeMin(''); setCustomRangeMax(''); setCustomRadius(''); setCustomChoices([]); }} />
-        {customQuestions.map((question) => <Text key={question.id} style={styles.note}>• {question.question} ({question.answerKind}) — eligibility held internally</Text>)}
+        <Button title={editingQuestionId ? 'Save screening question' : 'Add screening question'} variant="secondary" onPress={saveCustomQuestion} />
+        {customQuestions.map((question) => <View key={question.id} style={styles.questionRow}><Pressable style={styles.questionText} onPress={() => { setEditingQuestionId(question.id); setCustomQuestion(question.question); setCustomAnswerKind(question.answerKind); }}><Text style={styles.note}>• {question.question} ({question.answerKind})</Text></Pressable><Button title="Delete" variant="secondary" onPress={() => setCustomQuestions((current) => current.filter((entry) => entry.id !== question.id))} /></View>)}
       </Card>
 
       <Card>
+        <View style={highlightedField === 'requiredInfo' ? styles.highlightedCard : undefined}>
         <Text style={styles.sectionTitle}>Required participant info</Text>
         <Text style={styles.note}>Choose which categories applicants must provide, without setting pass/fail criteria.</Text>
         <View style={styles.requiredGrid}>
@@ -246,8 +305,9 @@ export default function CreateStudyScreen() {
             </Pressable>
           ))}
         </View>
+        </View>
       </Card>
-      <Button title="Publish study" onPress={publishStudy} disabled={!canPublish} />
+      <View style={styles.actions}><Button title="Save" variant="secondary" onPress={() => saveStudy(false)} /><Button title="Save and publish" onPress={publishStudy} /></View>
     </ScrollView>
   );
 }
@@ -287,10 +347,18 @@ const styles = StyleSheet.create({
   ageControl: { gap: theme.spacing.xs },
   criteriaBlock: { gap: theme.spacing.sm },
   divider: { height: 1, backgroundColor: theme.colors.border, marginVertical: theme.spacing.sm },
+  dualSlider: { height: 54, justifyContent: 'center', marginHorizontal: theme.spacing.sm },
   sliderTrack: { height: 8, borderRadius: 999, backgroundColor: theme.colors.border, overflow: 'hidden' },
   sliderFill: { position: 'absolute', top: 0, bottom: 0, backgroundColor: theme.colors.primary, borderRadius: 999 },
+  sliderThumb: { position: 'absolute', marginLeft: -16, width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
+  thumbLabel: { color: '#fff', fontSize: 11, fontWeight: '900' },
   subsectionTitle: { color: theme.colors.textPrimary, fontWeight: '800', fontSize: theme.typography.body },
   errorText: { color: '#B91C1C', fontWeight: '800' },
   inlineInputs: { flexDirection: 'row', gap: theme.spacing.sm, alignItems: 'center' },
-  flexInput: { flex: 1 }
+  flexInput: { flex: 1 },
+  highlightedInput: { borderColor: '#DC2626', borderWidth: 2, backgroundColor: '#FEF2F2' },
+  highlightedCard: { borderColor: '#DC2626', borderWidth: 2 },
+  questionRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
+  questionText: { flex: 1 },
+  actions: { flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.sm }
 });

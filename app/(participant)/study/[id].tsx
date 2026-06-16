@@ -54,7 +54,7 @@ export default function StudyDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionHeader title={study.title} subtitle={study.shortDescription} />
+      {openedFromMyStudies ? <Text style={styles.introText}>{study.shortDescription}</Text> : <SectionHeader title={study.title} subtitle={study.shortDescription} />}
       <View style={styles.tags}><Badge label={study.mode} /><Badge label={study.theme} /></View>
       <Card>
         <Text style={styles.heading}>Study details</Text>
@@ -94,6 +94,7 @@ const styles = StyleSheet.create({
   missingText: { color: theme.colors.textSecondary },
   heading: { color: theme.colors.textPrimary, fontWeight: '700', fontSize: theme.typography.h3 },
   text: { color: theme.colors.textSecondary, lineHeight: 20 },
+  introText: { color: theme.colors.textSecondary, lineHeight: 20 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
   appliedState: {
     borderRadius: theme.radius.md,

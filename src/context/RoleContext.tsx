@@ -25,6 +25,7 @@ type RoleContextValue = {
   studies: Study[];
   applicants: Applicant[];
   createStudy: (study: Study) => void;
+  updateStudy: (study: Study) => void;
   setStudyActive: (studyId: string, isActive: boolean) => void;
   deleteStudy: (studyId: string) => void;
   applyToStudy: (study: Study) => void;
@@ -106,7 +107,11 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   };
 
   const createStudy = (study: Study) => {
-    setStudies((current) => (current.some((entry) => entry.id === study.id) ? current : [study, ...current]));
+    setStudies((current) => (current.some((entry) => entry.id === study.id) ? current.map((entry) => (entry.id === study.id ? study : entry)) : [study, ...current]));
+  };
+
+  const updateStudy = (study: Study) => {
+    setStudies((current) => current.map((entry) => (entry.id === study.id ? study : entry)));
   };
 
   const setStudyActive = (studyId: string, isActive: boolean) => {
@@ -243,6 +248,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       studies,
       applicants,
       createStudy,
+      updateStudy,
       setStudyActive,
       deleteStudy,
       applyToStudy,
