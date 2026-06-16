@@ -64,7 +64,9 @@ export default function ResearcherStudyDetailsScreen() {
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuOpen(false)}>
           <View style={styles.popoverMenu}>
-            <Pressable onPress={() => { setMenuOpen(false); setConfirmAction(study.isActive === false ? 'activate' : 'deactivate'); }}><Text style={styles.menuItem}>{study.isActive === false ? 'Activate study' : 'Deactivate study'}</Text></Pressable>
+            {isPublished ? (
+              <Pressable onPress={() => { setMenuOpen(false); setConfirmAction(study.isActive === false ? 'activate' : 'deactivate'); }}><Text style={styles.menuItem}>{study.isActive === false ? 'Activate study' : 'Deactivate study'}</Text></Pressable>
+            ) : null}
             <Pressable onPress={() => { setMenuOpen(false); setConfirmAction('delete'); }}><Text style={[styles.menuItem, styles.deleteText]}>Delete study</Text></Pressable>
           </View>
         </Pressable>
@@ -121,7 +123,7 @@ export default function ResearcherStudyDetailsScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{confirmAction === 'delete' ? 'Delete study?' : confirmAction === 'activate' ? 'Activate study?' : 'Deactivate study?'}</Text>
             <Text style={styles.text}>{confirmAction === 'delete' ? 'This will permanently remove the study, participant updates, and chat history.' : confirmAction === 'activate' ? 'Participants will be able to apply to this study.' : 'Participants will not be able to apply while this study is inactive.'}</Text>
-            <View style={styles.actions}><Button title="Cancel" variant="secondary" onPress={() => setConfirmAction(null)} /><Button title={confirmAction === 'delete' ? 'Delete' : confirmAction === 'activate' ? 'Activate' : 'Deactivate'} onPress={() => { if (!confirmAction) return; if (confirmAction === 'delete') { deleteStudy(study.id); setConfirmAction(null); router.replace('/(researcher)'); return; } setStudyActive(study.id, confirmAction === 'activate'); setConfirmAction(null); setMenuOpen(false); }} /></View>
+            <View style={styles.actions}><Button title="Cancel" variant="secondary" onPress={() => setConfirmAction(null)} /><Button title={confirmAction === 'delete' ? 'Delete' : confirmAction === 'activate' ? 'Activate' : 'Deactivate'} onPress={() => { if (!confirmAction) return; if (confirmAction === 'delete') { deleteStudy(study.id); setConfirmAction(null); router.replace('/(researcher)'); return; } if (isPublished) setStudyActive(study.id, confirmAction === 'activate'); setConfirmAction(null); setMenuOpen(false); }} /></View>
           </View>
         </View>
       </Modal>

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
@@ -38,19 +38,35 @@ const AGE_SPAN = AGE_MAX - AGE_MIN;
 
 function DualAgeSlider({ min, max, onChange }: { min: number; max: number; onChange: (next: { min: number; max: number }) => void }) {
   const [width, setWidth] = useState(1);
+  const values = useRef({ min, max });
   const start = useRef({ min, max });
+
+  useEffect(() => {
+    values.current = { min, max };
+  }, [max, min]);
+
   const valueFromDx = (startValue: number, dx: number) => Math.round(Math.min(AGE_MAX, Math.max(AGE_MIN, startValue + (dx / width) * AGE_SPAN)));
   const minResponder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponderCapture: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => { start.current = { min, max }; },
-    onPanResponderMove: (_, gesture) => onChange({ min: Math.min(valueFromDx(start.current.min, gesture.dx), max), max })
+    onMoveShouldSetPanResponderCapture: () => true,
+    onPanResponderGrant: () => { start.current = values.current; },
+    onPanResponderMove: (_, gesture) => {
+      const nextMin = Math.min(valueFromDx(start.current.min, gesture.dx), values.current.max);
+      onChange({ min: nextMin, max: values.current.max });
+    }
   })).current;
   const maxResponder = useRef(PanResponder.create({
     onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponderCapture: () => true,
     onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => { start.current = { min, max }; },
-    onPanResponderMove: (_, gesture) => onChange({ min, max: Math.max(valueFromDx(start.current.max, gesture.dx), min) })
+    onMoveShouldSetPanResponderCapture: () => true,
+    onPanResponderGrant: () => { start.current = values.current; },
+    onPanResponderMove: (_, gesture) => {
+      const nextMax = Math.max(valueFromDx(start.current.max, gesture.dx), values.current.min);
+      onChange({ min: values.current.min, max: nextMax });
+    }
   })).current;
   const minPct = ((min - AGE_MIN) / AGE_SPAN) * 100;
   const maxPct = ((max - AGE_MIN) / AGE_SPAN) * 100;
