@@ -28,10 +28,23 @@ export type RewardKind = 'Monetary' | 'Voucher / gift card' | 'None' | 'Other';
 
 export type LocationKind = 'Online' | 'In person' | 'Both';
 
+export type EligibilityAnswerKind = 'range' | 'yesNo' | 'multipleChoice' | 'locationRadius';
+
 export type EligibilityCriterion = {
-  field: StudyFieldRequirement;
+  field: StudyFieldRequirement | 'customQuestion';
   label: string;
   value: string;
+  answerKind?: EligibilityAnswerKind;
+  locked?: boolean;
+  minimumNecessaryOnly?: boolean;
+};
+
+export type CustomScreeningQuestion = {
+  id: string;
+  question: string;
+  answerKind: EligibilityAnswerKind;
+  eligibleAnswer: string;
+  requiredInfo: string;
 };
 
 export type Study = {
@@ -54,19 +67,22 @@ export type Study = {
   requiredInfoFields: StudyFieldRequirement[];
   researcherFirstName: string;
   requiredProfileFields: StudyFieldRequirement[];
+  customScreeningQuestions?: CustomScreeningQuestion[];
+  criteriaLocked?: boolean;
+  privacyStage?: 'anonymous-eligible' | 'booked-info-release';
 };
 
 export type Applicant = {
   id: string;
   name: string;
   age: number;
-  status: 'Pending' | 'Accepted' | 'Rejected';
+  status: 'Eligible' | 'Booked' | 'Rejected';
   studyId: string;
   summary: string;
   isNew?: boolean;
 };
 
-export type ApplicationStatus = 'Applied' | 'Accepted' | 'Completed' | 'Rejected';
+export type ApplicationStatus = 'Accepted' | 'Booked' | 'Completed' | 'Rejected';
 
 export type StudyApplication = {
   id: string;

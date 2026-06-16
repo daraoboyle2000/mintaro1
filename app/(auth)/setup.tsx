@@ -20,7 +20,7 @@ const participantTutorialSteps = [
 
 const researcherTutorialSteps = [
   { title: 'Create structured studies', text: 'Publish studies with theme, reward, duration, location, eligibility criteria, and required-info fields.' },
-  { title: 'Review applicants in My Studies', text: 'Each study has Applied, Accepted, and Rejected tabs plus notification counters for new applicants.' },
+  { title: 'Review applicants in My Studies', text: 'Each study has a dedicated page with Eligible, Booked, and Rejected tabs plus privacy-gated participant details.' },
   { title: 'Chat after acceptance', text: 'Accepted applicants show a chat icon so you can coordinate session details directly.' }
 ];
 

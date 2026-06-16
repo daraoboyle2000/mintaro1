@@ -111,7 +111,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         {
           id: `ap-${study.id}-${Date.now()}`,
           studyId: study.id,
-          status: 'Applied',
+          status: 'Accepted',
           unreadUpdates: 1,
           updatedAt: new Date().toISOString().slice(0, 10)
         },

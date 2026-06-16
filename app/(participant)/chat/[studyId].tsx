@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -80,9 +81,10 @@ export default function StudyChatScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
+      headerTitle: '',
       headerLeft: () => (
         <Pressable onPress={returnToMyStudies} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back to My Studies">
-          <Text style={styles.backLink}>‹ My Studies</Text>
+          <View style={styles.backPill}><Ionicons name="library" size={18} color={theme.colors.primaryDark} /><Text style={styles.backLink}>My Studies</Text></View>
         </Pressable>
       )
     });
@@ -187,6 +189,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   header: { gap: theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg },
   backLink: { color: theme.colors.primaryDark, fontWeight: '800', fontSize: theme.typography.body },
+  backPill: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   studyTitle: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
   researcherRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm },
   researcherName: { color: theme.colors.textSecondary, fontWeight: '600' },

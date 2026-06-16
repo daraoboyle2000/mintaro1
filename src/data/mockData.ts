@@ -18,10 +18,12 @@ export const mockStudies: Study[] = [
     tags: ['Health', 'Interview', 'Adults 18+'],
     theme: 'Fitness & movement',
     eligibilitySummary: 'Age 18-45, English-speaking, active lifestyle.',
-    eligibilityCriteria: [{ field: 'ageRange', label: 'Age', value: '18-45' }],
+    eligibilityCriteria: [{ field: 'ageRange', label: 'Age', value: '18-45', answerKind: 'range', locked: true, minimumNecessaryOnly: true }],
     requiredInfoFields: ['ageRange', 'healthStatus'],
     researcherFirstName: 'Lena',
-    requiredProfileFields: ['ageRange']
+    requiredProfileFields: ['ageRange'],
+    criteriaLocked: true,
+    privacyStage: 'anonymous-eligible'
   },
   {
     id: 's2',
@@ -40,10 +42,12 @@ export const mockStudies: Study[] = [
     tags: ['Fintech', 'Usability', 'Remote'],
     theme: 'Finance & fintech',
     eligibilitySummary: 'Current mobile banking user, age 21+, U.S. resident.',
-    eligibilityCriteria: [{ field: 'ageRange', label: 'Age', value: '21+' }],
+    eligibilityCriteria: [{ field: 'ageRange', label: 'Age', value: '21+', answerKind: 'range', locked: true, minimumNecessaryOnly: true }],
     requiredInfoFields: ['ageRange', 'distancePreference'],
     researcherFirstName: 'Marco',
-    requiredProfileFields: ['ageRange', 'distancePreference']
+    requiredProfileFields: ['ageRange', 'distancePreference'],
+    criteriaLocked: true,
+    privacyStage: 'booked-info-release'
   },
   {
     id: 's3',
@@ -62,10 +66,12 @@ export const mockStudies: Study[] = [
     tags: ['Retail', 'In-person', 'Diary'],
     theme: 'Consumer behaviour',
     eligibilitySummary: 'Shop for household groceries at least once weekly.',
-    eligibilityCriteria: [{ field: 'healthStatus', label: 'Health status', value: 'No mobility restrictions for in-store trip' }],
+    eligibilityCriteria: [{ field: 'healthStatus', label: 'Health status', value: 'No mobility restrictions for in-store trip', answerKind: 'multipleChoice', locked: true, minimumNecessaryOnly: true }],
     requiredInfoFields: ['ageRange', 'sex'],
     researcherFirstName: 'Ava',
-    requiredProfileFields: ['smoker']
+    requiredProfileFields: ['smoker'],
+    criteriaLocked: true,
+    privacyStage: 'anonymous-eligible'
   }
 ];
 
@@ -74,7 +80,7 @@ export const mockApplicants: Applicant[] = [
     id: 'a1',
     name: 'Jordan Blake',
     age: 28,
-    status: 'Pending',
+    status: 'Eligible',
     studyId: 's1',
     summary: 'Runs 3x weekly and has prior interview-study experience.',
     isNew: true
@@ -83,7 +89,7 @@ export const mockApplicants: Applicant[] = [
     id: 'a2',
     name: 'Amira Patel',
     age: 33,
-    status: 'Accepted',
+    status: 'Booked',
     studyId: 's2',
     summary: 'Heavy banking app user with experience testing prototypes.',
     isNew: false
@@ -100,8 +106,8 @@ export const mockApplicants: Applicant[] = [
 ];
 
 export const mockApplications: StudyApplication[] = [
-  { id: 'ap1', studyId: 's1', status: 'Applied', unreadUpdates: 0, updatedAt: '2026-04-20' },
-  { id: 'ap2', studyId: 's2', status: 'Accepted', unreadUpdates: 2, updatedAt: '2026-04-23' },
+  { id: 'ap1', studyId: 's1', status: 'Accepted', unreadUpdates: 0, updatedAt: '2026-04-20' },
+  { id: 'ap2', studyId: 's2', status: 'Booked', unreadUpdates: 2, updatedAt: '2026-04-23' },
   { id: 'ap3', studyId: 's3', status: 'Rejected', unreadUpdates: 1, updatedAt: '2026-04-21' }
 ];
 
