@@ -43,8 +43,8 @@ export type CustomScreeningQuestion = {
   id: string;
   question: string;
   answerKind: EligibilityAnswerKind;
-  eligibleAnswer: string;
-  requiredInfo: string;
+  eligibleAnswer: string | boolean | { min?: number; max?: number } | string[] | { radius?: number };
+  requiredInfo?: string;
 };
 
 export type Study = {
@@ -70,6 +70,7 @@ export type Study = {
   customScreeningQuestions?: CustomScreeningQuestion[];
   criteriaLocked?: boolean;
   privacyStage?: 'anonymous-eligible' | 'booked-info-release';
+  isActive?: boolean;
 };
 
 export type Applicant = {
@@ -80,6 +81,7 @@ export type Applicant = {
   studyId: string;
   summary: string;
   isNew?: boolean;
+  unreadUpdates?: number;
 };
 
 export type ApplicationStatus = 'Accepted' | 'Booked' | 'Completed' | 'Rejected';

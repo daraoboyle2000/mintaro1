@@ -84,11 +84,11 @@ export default function StudyChatScreen() {
       headerTitle: '',
       headerLeft: () => (
         <Pressable onPress={returnToMyStudies} hitSlop={10} accessibilityRole="button" accessibilityLabel="Back to My Studies">
-          <View style={styles.backPill}><Ionicons name="library" size={18} color={theme.colors.primaryDark} /><Text style={styles.backLink}>My Studies</Text></View>
+          <View style={styles.backPill}><Text style={styles.backLink}>← {study?.title ?? 'Study chat'}</Text></View>
         </Pressable>
       )
     });
-  }, [navigation]);
+  }, [navigation, study?.title]);
 
   const measureRoot = useCallback(() => {
     requestAnimationFrame(() => {

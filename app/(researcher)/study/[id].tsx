@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import { useLayoutEffect, useMemo, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams, useNavigation } from 'expo-router';
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +8,6 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { mockApplicants } from '@/data/mockData';
 import { useRole } from '@/context/RoleContext';
 import { Applicant } from '@/types';
 import { theme } from '@/theme';
@@ -20,15 +19,16 @@ function returnToMyStudies() {
   router.replace('/(researcher)');
 }
 
-function anonymizedLabel(applicant: Applicant, index: number) {
-  return applicant.status === 'Booked' ? applicant.name : `Anonymous eligible participant ${index + 1}`;
+function firstNameLabel(applicant: Applicant) {
+  return applicant.name.split(' ')[0] || applicant.name;
 }
 
 export default function ResearcherStudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
-  const { studies } = useRole();
+  const { applicants: allApplicants, markResearcherStudyRead, studies } = useRole();
   const [activeTab, setActiveTab] = useState<ApplicantTab>('Eligible');
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const study = studies.find((entry) => entry.id === id);
 
   useLayoutEffect(() => {
@@ -36,14 +36,19 @@ export default function ResearcherStudyDetailsScreen() {
       headerTitle: '',
       headerLeft: () => (
         <Pressable onPress={returnToMyStudies} hitSlop={10} style={styles.backLink} accessibilityRole="button" accessibilityLabel="Back to My Studies">
-          <Ionicons name="library" size={18} color={theme.colors.primaryDark} />
-          <Text style={styles.backText}>My Studies</Text>
+          <Text style={styles.backText}>← {study?.title ?? 'My Studies'}</Text>
         </Pressable>
       )
     });
-  }, [navigation]);
+  }, [navigation, study?.title]);
 
-  const applicants = useMemo(() => mockApplicants.filter((entry) => entry.studyId === id), [id]);
+  useFocusEffect(
+    useCallback(() => {
+      if (id) markResearcherStudyRead(id);
+    }, [id, markResearcherStudyRead])
+  );
+
+  const applicants = useMemo(() => allApplicants.filter((entry) => entry.studyId === id), [allApplicants, id]);
   const tabApplicants = applicants.filter((entry) => entry.status === activeTab);
 
   if (!study) {
@@ -52,14 +57,20 @@ export default function ResearcherStudyDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <SectionHeader title={study.title} subtitle="Manage automated eligibility, booking, and privacy-gated participant information." />
+      <SectionHeader title={study.title} />
       <Card>
-        <Text style={styles.heading}>Study controls</Text>
-        <Text style={styles.text}>{study.details}</Text>
-        <Text style={styles.text}>Reward: {study.rewardKind} · {study.reward}</Text>
-        <Text style={styles.text}>Duration: {study.durationMins} min · {study.locationKind}: {study.location}</Text>
-        <Text style={styles.text}>Eligibility: {study.eligibilitySummary}</Text>
-        <Text style={styles.securityText}>Criteria are locked before recruitment. Researchers initially see only eligibility outcomes; sensitive answers are released after booking/enrolment.</Text>
+        <Pressable onPress={() => setDetailsOpen((current) => !current)} style={styles.rowBetween} accessibilityRole="button">
+          <Text style={styles.heading}>Study details {detailsOpen ? '⌃' : '⌄'}</Text>
+          <Ionicons name={detailsOpen ? 'chevron-up' : 'chevron-down'} size={20} color={theme.colors.primaryDark} />
+        </Pressable>
+        {detailsOpen ? (
+          <>
+            <Text style={styles.text}>{study.details}</Text>
+            <Text style={styles.text}>Reward: {study.rewardKind} · {study.reward}</Text>
+            <Text style={styles.text}>Duration: {study.durationMins} min · {study.locationKind}: {study.location}</Text>
+            <Text style={styles.text}>Eligibility: {study.eligibilitySummary}</Text>
+          </>
+        ) : null}
       </Card>
 
       <View style={styles.tabs}>{applicantTabs.map((tab) => <FilterChip key={tab} label={tab} active={activeTab === tab} onPress={() => setActiveTab(tab)} />)}</View>
@@ -67,25 +78,25 @@ export default function ResearcherStudyDetailsScreen() {
         <EmptyState title={`No ${activeTab.toLowerCase()} participants`} subtitle="Automated screening results will appear here without exposing raw answers." />
       ) : (
         tabApplicants.map((applicant, index) => {
-          const booked = applicant.status === 'Booked';
+          const canMessage = applicant.status === 'Booked' || applicant.status === 'Eligible';
           return (
             <Card key={applicant.id}>
               <View style={styles.rowBetween}>
                 <Badge label={applicant.status} />
                 {applicant.isNew ? <Badge label="New" /> : null}
               </View>
-              <Text style={styles.title}>{anonymizedLabel(applicant, index)}</Text>
-              {booked ? (
+              <Text style={styles.title}>{firstNameLabel(applicant)}</Text>
+              {canMessage ? (
                 <>
                   <Text style={styles.text}>Age: {applicant.age}</Text>
                   <Text style={styles.text}>{applicant.summary}</Text>
                   <Pressable onPress={() => router.push(`/(researcher)/chat/${study.id}`)} style={styles.chatButton} accessibilityRole="button">
                     <Ionicons name="chatbubble-ellipses" size={18} color={theme.colors.primaryDark} />
-                    <Text style={styles.chatText}>Open booked participant chat</Text>
+                    <Text style={styles.chatText}>Message {firstNameLabel(applicant)}</Text>
                   </Pressable>
                 </>
               ) : (
-                <Text style={styles.text}>Minimum necessary view: eligible outcome only. Raw demographic, behavioral, and health answers stay hidden until booking.</Text>
+                <Text style={styles.text}>Minimum necessary view: rejected outcome only. Raw demographic, behavioral, and health answers stay hidden.</Text>
               )}
               {applicant.status === 'Rejected' ? <Text style={styles.securityText}>Rejection must map to a locked eligibility criterion or a verifiable scheduling conflict.</Text> : null}
             </Card>

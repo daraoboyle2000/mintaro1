@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { mockApplications, mockMessages, mockStudies } from '@/data/mockData';
+import { mockApplicants, mockApplications, mockMessages, mockStudies } from '@/data/mockData';
 import {
   ChatMessage,
   DevModePreset,
@@ -9,7 +9,8 @@ import {
   Role,
   Study,
   StudyApplication,
-  StudyFieldRequirement
+  StudyFieldRequirement,
+  Applicant
 } from '@/types';
 import { withCalculatedAge } from '@/utils/profile';
 
@@ -22,11 +23,16 @@ type RoleContextValue = {
   setResearcherProfile: (updater: ResearcherProfile | ((profile: ResearcherProfile) => ResearcherProfile)) => void;
   applications: StudyApplication[];
   studies: Study[];
+  applicants: Applicant[];
   createStudy: (study: Study) => void;
+  setStudyActive: (studyId: string, isActive: boolean) => void;
+  deleteStudy: (studyId: string) => void;
   applyToStudy: (study: Study) => void;
   messages: ChatMessage[];
   sendMessage: (studyId: string, text: string, from?: 'participant' | 'researcher') => void;
   unreadMyStudiesCount: number;
+  unreadResearcherUpdatesCount: number;
+  markResearcherStudyRead: (studyId: string) => void;
   markMyStudiesRead: () => void;
   devModePreset: DevModePreset;
   setDevModePreset: (preset: DevModePreset) => void;
@@ -85,6 +91,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
   const [researcherProfile, setResearcherProfileState] = useState<ResearcherProfile>(defaultResearcherProfile);
   const [applications, setApplications] = useState<StudyApplication[]>(mockApplications);
   const [studies, setStudies] = useState<Study[]>(() => withDefaultStudies());
+  const [applicants, setApplicants] = useState<Applicant[]>(mockApplicants);
   const [messages, setMessages] = useState<ChatMessage[]>(mockMessages);
   const [devModePreset, setDevModePreset] = useState<DevModePreset>('account-made');
 
@@ -100,6 +107,17 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
 
   const createStudy = (study: Study) => {
     setStudies((current) => (current.some((entry) => entry.id === study.id) ? current : [study, ...current]));
+  };
+
+  const setStudyActive = (studyId: string, isActive: boolean) => {
+    setStudies((current) => current.map((study) => (study.id === studyId ? { ...study, isActive } : study)));
+  };
+
+  const deleteStudy = (studyId: string) => {
+    setStudies((current) => current.filter((study) => study.id !== studyId));
+    setApplicants((current) => current.filter((applicant) => applicant.studyId !== studyId));
+    setApplications((current) => current.filter((application) => application.studyId !== studyId));
+    setMessages((current) => current.filter((message) => message.studyId !== studyId));
   };
 
   const applyToStudy = (study: Study) => {
@@ -168,6 +186,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         setResearcherProfileState(emptyResearcherProfile);
       setApplications([]);
       setMessages([]);
+      setApplicants([]);
       setStudies(() => withDefaultStudies());
       return;
     }
@@ -175,8 +194,20 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
     setResearcherProfileState(defaultResearcherProfile);
     setApplications(mockApplications);
     setMessages(mockMessages);
+    setApplicants(mockApplicants);
     setStudies(() => withDefaultStudies());
   };
+
+  const unreadResearcherUpdatesCount = useMemo(
+    () => applicants.reduce((sum, entry) => sum + (entry.unreadUpdates ?? (entry.isNew ? 1 : 0)), 0),
+    [applicants]
+  );
+
+  const markResearcherStudyRead = useCallback((studyId: string) => {
+    setApplicants((current) =>
+      current.map((entry) => (entry.studyId === studyId ? { ...entry, isNew: false, unreadUpdates: 0 } : entry))
+    );
+  }, []);
 
   const unreadMyStudiesCount = useMemo(
     () => applications.reduce((sum, entry) => sum + entry.unreadUpdates, 0),
@@ -210,12 +241,17 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       setResearcherProfile,
       applications,
       studies,
+      applicants,
       createStudy,
+      setStudyActive,
+      deleteStudy,
       applyToStudy,
       messages,
       sendMessage,
       unreadMyStudiesCount,
+      unreadResearcherUpdatesCount,
       markMyStudiesRead,
+      markResearcherStudyRead,
       devModePreset,
       setDevModePreset,
       hydrateByPreset,
@@ -223,7 +259,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
       isParticipantSetupComplete,
       isResearcherSetupComplete
     }),
-    [role, profile, researcherProfile, applications, studies, messages, unreadMyStudiesCount, markMyStudiesRead, devModePreset, isParticipantSetupComplete, isResearcherSetupComplete]
+    [role, profile, researcherProfile, applications, studies, applicants, messages, unreadMyStudiesCount, unreadResearcherUpdatesCount, markMyStudiesRead, markResearcherStudyRead, devModePreset, isParticipantSetupComplete, isResearcherSetupComplete]
   );
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;

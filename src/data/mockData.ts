@@ -23,7 +23,8 @@ export const mockStudies: Study[] = [
     researcherFirstName: 'Lena',
     requiredProfileFields: ['ageRange'],
     criteriaLocked: true,
-    privacyStage: 'anonymous-eligible'
+    privacyStage: 'anonymous-eligible',
+    isActive: true
   },
   {
     id: 's2',
@@ -47,7 +48,8 @@ export const mockStudies: Study[] = [
     researcherFirstName: 'Marco',
     requiredProfileFields: ['ageRange', 'distancePreference'],
     criteriaLocked: true,
-    privacyStage: 'booked-info-release'
+    privacyStage: 'booked-info-release',
+    isActive: true
   },
   {
     id: 's3',
@@ -71,7 +73,8 @@ export const mockStudies: Study[] = [
     researcherFirstName: 'Ava',
     requiredProfileFields: ['smoker'],
     criteriaLocked: true,
-    privacyStage: 'anonymous-eligible'
+    privacyStage: 'anonymous-eligible',
+    isActive: false
   }
 ];
 
@@ -83,7 +86,8 @@ export const mockApplicants: Applicant[] = [
     status: 'Eligible',
     studyId: 's1',
     summary: 'Runs 3x weekly and has prior interview-study experience.',
-    isNew: true
+    isNew: true,
+    unreadUpdates: 1
   },
   {
     id: 'a2',
@@ -92,7 +96,8 @@ export const mockApplicants: Applicant[] = [
     status: 'Booked',
     studyId: 's2',
     summary: 'Heavy banking app user with experience testing prototypes.',
-    isNew: false
+    isNew: false,
+    unreadUpdates: 0
   },
   {
     id: 'a3',
@@ -101,7 +106,8 @@ export const mockApplicants: Applicant[] = [
     status: 'Rejected',
     studyId: 's3',
     summary: 'Limited in-person availability for planned time slots.',
-    isNew: true
+    isNew: true,
+    unreadUpdates: 1
   }
 ];
 
