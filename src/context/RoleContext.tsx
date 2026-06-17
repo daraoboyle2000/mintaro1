@@ -193,7 +193,7 @@ export function RoleProvider({ children }: { children: React.ReactNode }) {
         setResearcherProfileState(emptyResearcherProfile);
       setApplications([]);
       setMessages([]);
-      setApplicants([]);
+      setApplicants(mockApplicants);
       setStudies(() => withDefaultStudies());
       return;
     }

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { GestureResponderEvent, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -36,45 +36,99 @@ const AGE_MAX = 100;
 const AGE_SPAN = AGE_MAX - AGE_MIN;
 
 
-function DualAgeSlider({ min, max, onChange }: { min: number; max: number; onChange: (next: { min: number; max: number }) => void }) {
+function DualAgeSlider({
+  min,
+  max,
+  onChange,
+  onDragActiveChange
+}: {
+  min: number;
+  max: number;
+  onChange: (next: { min: number; max: number }) => void;
+  onDragActiveChange?: (active: boolean) => void;
+}) {
   const [width, setWidth] = useState(1);
+  const wrapperRef = useRef<View>(null);
+  const trackPageX = useRef(0);
   const values = useRef({ min, max });
-  const start = useRef({ min, max });
+  const activeThumb = useRef<'min' | 'max' | null>(null);
+  const horizontalDragActive = useRef(false);
 
   useEffect(() => {
     values.current = { min, max };
   }, [max, min]);
 
-  const valueFromDx = (startValue: number, dx: number) => Math.round(Math.min(AGE_MAX, Math.max(AGE_MIN, startValue + (dx / width) * AGE_SPAN)));
-  const minResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onStartShouldSetPanResponderCapture: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponderCapture: () => true,
-    onPanResponderGrant: () => { start.current = values.current; },
-    onPanResponderMove: (_, gesture) => {
-      const nextMin = Math.min(valueFromDx(start.current.min, gesture.dx), values.current.max);
-      onChange({ min: nextMin, max: values.current.max });
+  const clamp = (value: number, lower: number, upper: number) => Math.min(upper, Math.max(lower, value));
+  const ageToX = (age: number) => ((age - AGE_MIN) / AGE_SPAN) * width;
+  const ageFromX = (x: number) => Math.round(AGE_MIN + (clamp(x, 0, width) / width) * AGE_SPAN);
+  const measureTrack = () => {
+    wrapperRef.current?.measure((_x, _y, measuredWidth, _height, pageX) => {
+      if (measuredWidth > 0) {
+        setWidth(Math.max(measuredWidth, 1));
+      }
+      trackPageX.current = pageX;
+    });
+  };
+  const relativeXFromEvent = (event: GestureResponderEvent) => {
+    const pageX = event.nativeEvent.pageX;
+    if (typeof pageX === 'number' && trackPageX.current) {
+      return pageX - trackPageX.current;
     }
-  })).current;
-  const maxResponder = useRef(PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onStartShouldSetPanResponderCapture: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponderCapture: () => true,
-    onPanResponderGrant: () => { start.current = values.current; },
-    onPanResponderMove: (_, gesture) => {
-      const nextMax = Math.max(valueFromDx(start.current.max, gesture.dx), values.current.min);
-      onChange({ min: values.current.min, max: nextMax });
+    return event.nativeEvent.locationX;
+  };
+  const updateThumb = (x: number) => {
+    const thumb = activeThumb.current;
+    if (!thumb) {
+      return;
     }
+    const nextAge = ageFromX(x);
+    if (thumb === 'min') {
+      onChange({ min: clamp(nextAge, AGE_MIN, values.current.max), max: values.current.max });
+      return;
+    }
+    onChange({ min: values.current.min, max: clamp(nextAge, values.current.min, AGE_MAX) });
+  };
+  const beginInteraction = (event: GestureResponderEvent) => {
+    measureTrack();
+    const x = relativeXFromEvent(event);
+    const distanceToMin = Math.abs(x - ageToX(values.current.min));
+    const distanceToMax = Math.abs(x - ageToX(values.current.max));
+    activeThumb.current = distanceToMin <= distanceToMax ? 'min' : 'max';
+    updateThumb(x);
+  };
+  const endInteraction = () => {
+    activeThumb.current = null;
+    horizontalDragActive.current = false;
+    onDragActiveChange?.(false);
+  };
+
+  const trackResponder = useRef(PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onStartShouldSetPanResponderCapture: () => false,
+    onMoveShouldSetPanResponder: (_event, gesture) => Math.abs(gesture.dx) > 4 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+    onMoveShouldSetPanResponderCapture: (_event, gesture) => Math.abs(gesture.dx) > 4 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+    onPanResponderGrant: (event) => {
+      beginInteraction(event);
+    },
+    onPanResponderMove: (event, gesture) => {
+      if (!horizontalDragActive.current && Math.abs(gesture.dx) > 4 && Math.abs(gesture.dx) > Math.abs(gesture.dy)) {
+        horizontalDragActive.current = true;
+        onDragActiveChange?.(true);
+      }
+      updateThumb(relativeXFromEvent(event));
+    },
+    onPanResponderTerminationRequest: (_event, gesture) => !(horizontalDragActive.current || Math.abs(gesture.dx) > Math.abs(gesture.dy)),
+    onPanResponderRelease: endInteraction,
+    onPanResponderTerminate: endInteraction
   })).current;
+
   const minPct = ((min - AGE_MIN) / AGE_SPAN) * 100;
   const maxPct = ((max - AGE_MIN) / AGE_SPAN) * 100;
   return (
-    <View style={styles.dualSlider} onLayout={(event) => setWidth(Math.max(event.nativeEvent.layout.width, 1))}>
+    <View ref={wrapperRef} style={styles.dualSlider} onLayout={(event) => { setWidth(Math.max(event.nativeEvent.layout.width, 1)); measureTrack(); }} {...trackResponder.panHandlers}>
       <View style={styles.sliderTrack}><View style={[styles.sliderFill, { left: `${minPct}%`, right: `${100 - maxPct}%` }]} /></View>
-      <View {...minResponder.panHandlers} style={[styles.sliderThumb, { left: `${minPct}%` }]}><Text style={styles.thumbLabel}>{min}</Text></View>
-      <View {...maxResponder.panHandlers} style={[styles.sliderThumb, { left: `${maxPct}%` }]}><Text style={styles.thumbLabel}>{max}</Text></View>
+      <View pointerEvents="none" style={[styles.sliderTouchTarget, { left: `${minPct}%` }]}><View style={styles.sliderThumb}><Text style={styles.thumbLabel}>{min}</Text></View></View>
+      <View pointerEvents="none" style={[styles.sliderTouchTarget, { left: `${maxPct}%` }]}><View style={styles.sliderThumb}><Text style={styles.thumbLabel}>{max}</Text></View></View>
     </View>
   );
 }
@@ -118,6 +172,7 @@ export default function CreateStudyScreen() {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [highlightedField, setHighlightedField] = useState<string | null>(null);
   const [requiredInfoFields, setRequiredInfoFields] = useState<StudyFieldRequirement[]>(editingStudy?.requiredInfoFields ?? ['ageRange']);
+  const [sliderDragActive, setSliderDragActive] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({ headerTitle: 'Create a study', headerTitleAlign: 'center' });
@@ -219,7 +274,7 @@ export default function CreateStudyScreen() {
   };
 
   return (
-    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" scrollEnabled={!sliderDragActive}>
       <Card>
         <View style={styles.fields}>
           <TextInput value={title} onChangeText={(value) => { setTitle(value); setHighlightedField(null); }} placeholder="Study title" style={[styles.input, highlightedField === 'title' && styles.highlightedInput]} />
@@ -272,7 +327,7 @@ export default function CreateStudyScreen() {
         <Text style={styles.note}>Use typed selections and tactile ranges. Criteria lock when the study is published.</Text>
         <View style={styles.criteriaBlock}>
           <Text style={styles.label}>Age range: {ageMin}–{ageMax}</Text>
-          <DualAgeSlider min={ageMin} max={ageMax} onChange={({ min, max }) => { setAgeMin(min); setAgeMax(max); }} />
+          <DualAgeSlider min={ageMin} max={ageMax} onChange={({ min, max }) => { setAgeMin(min); setAgeMax(max); }} onDragActiveChange={setSliderDragActive} />
         </View>
         <View style={styles.divider} />
         <View style={styles.criteriaBlock}>
@@ -366,7 +421,8 @@ const styles = StyleSheet.create({
   dualSlider: { height: 54, justifyContent: 'center', marginHorizontal: theme.spacing.sm },
   sliderTrack: { height: 8, borderRadius: 999, backgroundColor: theme.colors.border, overflow: 'hidden' },
   sliderFill: { position: 'absolute', top: 0, bottom: 0, backgroundColor: theme.colors.primary, borderRadius: 999 },
-  sliderThumb: { position: 'absolute', marginLeft: -16, width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
+  sliderTouchTarget: { position: 'absolute', marginLeft: -24, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
+  sliderThumb: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primaryDark, alignItems: 'center', justifyContent: 'center' },
   thumbLabel: { color: '#fff', fontSize: 11, fontWeight: '900' },
   subsectionTitle: { color: theme.colors.textPrimary, fontWeight: '800', fontSize: theme.typography.body },
   errorText: { color: '#B91C1C', fontWeight: '800' },

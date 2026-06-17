@@ -51,7 +51,7 @@ export default function ResearcherStudyDetailsScreen() {
   );
 
   const applicants = useMemo(() => allApplicants.filter((entry) => entry.studyId === id), [allApplicants, id]);
-  const tabApplicants = applicants.filter((entry) => entry.status === activeTab);
+  const tabApplicants = applicants.filter((entry) => (activeTab === 'Applied' ? entry.status === 'Applied' || entry.status === 'Eligible' : entry.status === activeTab));
   const isPublished = study?.isPublished !== false;
 
   if (!study) {
