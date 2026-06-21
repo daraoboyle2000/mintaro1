@@ -5,9 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CreateIcon } from '@/components/icons/tab/CreateIcon';
 import { MyStudiesIcon } from '@/components/icons/tab/MyStudiesIcon';
 import { ProfileIcon } from '@/components/icons/tab/ProfileIcon';
+import { useRole } from '@/context/RoleContext';
 import { theme } from '@/theme';
 
 export default function ResearcherLayout() {
+  const { unreadResearcherUpdatesCount } = useRole();
+  const researcherBadge = unreadResearcherUpdatesCount > 99 ? '99+' : unreadResearcherUpdatesCount > 0 ? String(unreadResearcherUpdatesCount) : undefined;
   const insets = useSafeAreaInsets();
   const iconSize = 24;
 
@@ -30,6 +33,7 @@ export default function ResearcherLayout() {
         name="index"
         options={{
           title: 'My Studies',
+          tabBarBadge: researcherBadge,
           tabBarIcon: ({ color }) => <MyStudiesIcon size={iconSize} color={color} />
         }}
       />

@@ -23,6 +23,15 @@ function firstNameLabel(applicant: Applicant) {
   return applicant.name.split(' ')[0] || applicant.name;
 }
 
+function formatEligibleAnswer(answer: NonNullable<import('@/types').CustomScreeningQuestion['eligibleAnswer']>) {
+  if (typeof answer === 'boolean') return answer ? 'Yes' : 'No';
+  if (typeof answer === 'string') return answer;
+  if (Array.isArray(answer)) return answer.join(', ');
+  if ('radius' in answer) return `Within ${answer.radius ?? 0} km`;
+  if ('min' in answer || 'max' in answer) return `${answer.min ?? 'Any'}–${answer.max ?? 'Any'}`;
+  return 'Any';
+}
+
 export default function ResearcherStudyDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
@@ -78,10 +87,19 @@ export default function ResearcherStudyDetailsScreen() {
         </Pressable>
         {detailsOpen ? (
           <>
-            <Text style={styles.text}>{study.details}</Text>
-            <Text style={styles.text}>Reward: {study.rewardKind} · {study.reward}</Text>
-            <Text style={styles.text}>Duration: {study.durationMins} min · {study.locationKind}: {study.location}</Text>
-            <Text style={styles.text}>Eligibility: {study.eligibilitySummary}</Text>
+            <View style={styles.detailList}>
+              <Text style={styles.detailLabel}>Title</Text><Text style={styles.text}>{study.title}</Text>
+              <Text style={styles.detailLabel}>Participant-facing summary</Text><Text style={styles.text}>{study.shortDescription}</Text>
+              <Text style={styles.detailLabel}>Theme</Text><Text style={styles.text}>{study.theme}</Text>
+              <Text style={styles.detailLabel}>Reward</Text><Text style={styles.text}>{study.rewardKind}: {study.reward}{study.rewardValue ? ` ($${study.rewardValue})` : ''}</Text>
+              <Text style={styles.detailLabel}>Duration and location</Text><Text style={styles.text}>{study.durationMins} minutes · {study.locationKind} · {study.mode} · {study.location}</Text>
+              <Text style={styles.detailLabel}>Eligibility criteria</Text>
+              {study.eligibilityCriteria.length > 0 ? study.eligibilityCriteria.map((criterion) => <Text key={`${criterion.field}-${criterion.label}`} style={styles.text}>• {criterion.label}: {criterion.value} ({criterion.answerKind ?? 'selection'}{criterion.locked ? ', locked' : ''}{criterion.minimumNecessaryOnly ? ', minimum necessary only' : ''})</Text>) : <Text style={styles.text}>No strict eligibility criteria beyond required study information.</Text>}
+              <Text style={styles.detailLabel}>Required participant info</Text><Text style={styles.text}>{study.requiredInfoFields.join(', ') || 'None'}</Text>
+              <Text style={styles.detailLabel}>Custom screening questions</Text>
+              {study.customScreeningQuestions?.length ? study.customScreeningQuestions.map((question) => <Text key={question.id} style={styles.text}>• {question.question} · {question.answerKind} · eligible answer: {formatEligibleAnswer(question.eligibleAnswer)}</Text>) : <Text style={styles.text}>None</Text>}
+              <Text style={styles.detailLabel}>Publishing and privacy</Text><Text style={styles.text}>Status: {study.isPublished === false ? 'Unpublished' : study.isActive === false ? 'Deactivated' : 'Live'} · Criteria locked: {study.criteriaLocked ? 'Yes' : 'No'} · Privacy stage: {study.privacyStage ?? 'anonymous-eligible'}</Text>
+            </View>
           </>
         ) : null}
       </Card>
@@ -92,27 +110,19 @@ export default function ResearcherStudyDetailsScreen() {
       ) : tabApplicants.length === 0 ? (
         <EmptyState title={`No ${activeTab.toLowerCase()} participants`} subtitle="Mock and live screening results appear here without exposing raw answers." />
       ) : (
-        tabApplicants.map((applicant, index) => {
+        tabApplicants.map((applicant) => {
           const canMessage = applicant.status === 'Booked' || applicant.status === 'Applied' || applicant.status === 'Eligible';
           return (
             <Card key={applicant.id}>
-              <View style={styles.rowBetween}>
-                <Badge label={applicant.status} />
-                {applicant.isNew ? <Badge label="New" /> : null}
-              </View>
-              <Text style={styles.title}>{firstNameLabel(applicant)}</Text>
-              {canMessage ? (
-                <>
-                  <Text style={styles.text}>Age: {applicant.age}</Text>
-                  <Text style={styles.text}>{applicant.summary}</Text>
-                  <Pressable onPress={() => router.push(`/(researcher)/chat/${study.id}`)} style={styles.chatButton} accessibilityRole="button">
-                    <Ionicons name="chatbubble-ellipses" size={18} color={theme.colors.primaryDark} />
-                    <Text style={styles.chatText}>Message {firstNameLabel(applicant)}</Text>
+              <View style={styles.participantRow}>
+                <View style={styles.participantNameRow}><Text style={styles.title}>{firstNameLabel(applicant)}</Text>{applicant.isNew ? <Badge label="New" /> : null}<Badge label={applicant.status} /></View>
+                {canMessage ? (
+                  <Pressable onPress={() => router.push(`/(researcher)/chat/${study.id}`)} style={styles.iconChatButton} accessibilityRole="button" accessibilityLabel={`Message ${firstNameLabel(applicant)}`}>
+                    <Ionicons name="chatbubble-ellipses" size={20} color={theme.colors.primaryDark} />
                   </Pressable>
-                </>
-              ) : (
-                <Text style={styles.text}>Minimum necessary view: rejected outcome only. Raw demographic, behavioral, and health answers stay hidden.</Text>
-              )}
+                ) : null}
+              </View>
+              {!canMessage ? <Text style={styles.text}>Minimum necessary view: rejected outcome only. Raw demographic, behavioral, and health answers stay hidden.</Text> : null}
               {applicant.status === 'Rejected' ? <Text style={styles.securityText}>Rejection must map to a locked eligibility criterion or a verifiable scheduling conflict.</Text> : null}
             </Card>
           );
@@ -146,8 +156,11 @@ const styles = StyleSheet.create({
   text: { color: theme.colors.textSecondary, lineHeight: 20 },
   securityText: { color: theme.colors.primaryDark, lineHeight: 20, fontWeight: '700' },
   tabs: { flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' },
-  chatButton: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, alignSelf: 'flex-start', backgroundColor: '#EAF9F2', borderRadius: theme.radius.md, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm },
-  chatText: { color: theme.colors.primaryDark, fontWeight: '800' },
+  detailList: { gap: theme.spacing.xs },
+  detailLabel: { color: theme.colors.textPrimary, fontWeight: '900', marginTop: theme.spacing.sm },
+  participantRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.sm },
+  participantNameRow: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap', flex: 1 },
+  iconChatButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: '#EAF9F2' },
   menuItem: { color: theme.colors.textPrimary, fontWeight: '800', paddingVertical: theme.spacing.xs },
   deleteText: { color: '#B91C1C' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)', justifyContent: 'center', padding: theme.spacing.lg },
