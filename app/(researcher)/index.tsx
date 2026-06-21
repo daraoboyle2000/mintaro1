@@ -23,12 +23,11 @@ function StudyStatusBadge({ study }: { study: { isActive?: boolean; isPublished?
 }
 
 export default function ResearcherMyStudiesScreen() {
-  const { applicants: allApplicants, studies, unreadResearcherUpdatesCount } = useRole();
+  const { applicants: allApplicants, studies } = useRole();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <SectionHeader title="My Studies" subtitle="Open a study to manage eligibility results, booking, and participant chats." />
-      {unreadResearcherUpdatesCount > 0 ? <View style={styles.counter}><Text style={styles.counterText}>{unreadResearcherUpdatesCount} new participant update{unreadResearcherUpdatesCount === 1 ? '' : 's'}</Text></View> : null}
       {studies.length === 0 ? (
         <EmptyState title="No studies yet" subtitle="Create your first study to start matching eligible participants." />
       ) : (
@@ -37,16 +36,13 @@ export default function ResearcherMyStudiesScreen() {
           const applied = applicants.filter((entry) => entry.status === 'Applied' || entry.status === 'Eligible').length;
           const booked = applicants.filter((entry) => entry.status === 'Booked').length;
           const rejected = applicants.filter((entry) => entry.status === 'Rejected').length;
-          const unread = applicants.reduce((sum, entry) => sum + (entry.unreadUpdates ?? (entry.isNew ? 1 : 0)), 0);
           return (
             <Pressable key={study.id} onPress={() => router.push(`/(researcher)/study/${study.id}`)} accessibilityRole="button">
               <Card>
                 <View style={styles.rowBetween}>
-                  <View style={styles.badges}><StudyStatusBadge study={study} /><Badge label={study.theme} /><Badge label={study.mode} /></View>
-                  {unread > 0 ? <View style={styles.unreadBubble}><Text style={styles.unreadText}>{unread}</Text></View> : null}
+                  <Text style={styles.title}>{study.title}</Text>
+                  <StudyStatusBadge study={study} />
                 </View>
-                <Text style={styles.title}>{study.title}</Text>
-                <Text style={styles.text}>{study.reward} • {study.duration}</Text>
                 <View style={styles.statsRow}>
                   <Badge label={`${applied} applied`} />
                   <Badge label={`${booked} booked`} />
@@ -65,7 +61,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { padding: theme.spacing.lg, gap: theme.spacing.md, paddingBottom: theme.spacing.xxl },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: theme.spacing.sm },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm, flex: 1 },
   statusBadge: { alignSelf: 'flex-start', backgroundColor: '#EAF9F2', borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing.md, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   unpublishedDot: { backgroundColor: '#000' },
@@ -74,10 +69,5 @@ const styles = StyleSheet.create({
   statusText: { color: theme.colors.primaryDark, fontSize: theme.typography.caption, fontWeight: '600' },
   unpublishedText: { color: '#000' },
   title: { fontSize: theme.typography.h3, fontWeight: '700', color: theme.colors.textPrimary },
-  text: { color: theme.colors.textSecondary, lineHeight: 20 },
   statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm },
-  counter: { alignSelf: 'flex-start', backgroundColor: '#FEE2E2', borderRadius: 999, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.xs },
-  counterText: { color: '#B91C1C', fontWeight: '800' },
-  unreadBubble: { minWidth: 28, height: 28, borderRadius: 14, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center' },
-  unreadText: { color: '#fff', fontWeight: '800' },
 });
